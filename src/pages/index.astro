@@ -1,0 +1,128 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import { site, awards, contact } from "../config/site";
+import "../styles/home.css";
+
+const firstName = site.author.split(" ")[0];
+const firstLower = firstName.toLowerCase();
+const rolePills = ["digital nomad", "NLP engineer", "historian", "public speaker"];
+
+const services = [
+  {
+    n: "01",
+    title: "Contracting",
+    body: `Hiring ${firstName} as a data scientist brings machine learning and NLP expertise to your team.`,
+  },
+  {
+    n: "02",
+    title: "Courses",
+    body: `From data literacy to machine learning, ${firstName} can teach you or your organization.`,
+  },
+  {
+    n: "03",
+    title: "Public speaking",
+    body: "Available for in-person or online keynotes, panels, and workshops.",
+  },
+];
+---
+
+<SiteLayout
+  title={site.title}
+  description={site.description}
+  ogImage={new URL("/images/wjb-mattingly.jpg", Astro.site).href}
+  mainClass="home-main"
+>
+  <section class="home-hero" aria-labelledby="home-heading">
+    <div class="home-hero__grid">
+      <div class="home-hero__text">
+        <p class="home-hero__roles">
+          <span class="home-hero__roles-rule" aria-hidden="true"></span>
+          {
+            rolePills.map((label, i) => (
+              <>
+                {i > 0 ? <span class="home-hero__roles-sep" aria-hidden="true">/</span> : null}
+                <span>{label}</span>
+              </>
+            ))
+          }
+        </p>
+        <h1 id="home-heading" class="home-hero__title">
+          {site.author}<span class="home-hero__suffix">PhD</span>
+        </h1>
+        <p class="home-hero__lead">
+          {site.description} I work with partners from museums and libraries to build practical ML: teaching, consulting,
+          and public talks.
+        </p>
+      </div>
+
+      <figure class="home-hero__portrait">
+        <img
+          src="/images/wjb-mattingly.jpg"
+          alt="William Mattingly"
+          width={800}
+          height={1000}
+          loading="eager"
+          fetchpriority="high"
+        />
+        <img
+          class="home-hero__portrait-inset"
+          src="/images/hero-travel.jpg"
+          alt="Open landscape, travel and research"
+          width={1000}
+          height={800}
+          loading="lazy"
+        />
+      </figure>
+    </div>
+  </section>
+
+  <section class="home-services" aria-labelledby="work-together">
+    <header class="home-services__head">
+      <h2 id="work-together" class="home-services__heading">Work with me</h2>
+    </header>
+    <ul class="home-services__grid" role="list">
+      {
+        services.map((s) => (
+          <li class="home-service">
+            <span class="home-service__num">{s.n}</span>
+            <h3 class="home-service__title">{s.title}</h3>
+            <p class="home-service__body">{s.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="home-cta" aria-labelledby="cta-head">
+    <h2 id="cta-head" class="home-cta__title">
+      Interested in working with {firstLower} or need a consultation?
+    </h2>
+    <p class="home-cta__body">
+      Before working with clients, I like to meet, learn about your challenges, and look at your data. Book a time that
+      works for you.
+    </p>
+    <a class="home-cta__btn" href={contact.bookConsult.href}>
+      {contact.bookConsult.label}
+      <span class="home-cta__btn-arrow" aria-hidden="true">→</span>
+    </a>
+  </section>
+
+  <section class="home-awards" aria-labelledby="awards-head">
+    <header class="home-awards__head">
+      <h2 id="awards-head" class="home-awards__heading">Awards</h2>
+    </header>
+    <ul class="home-awards__grid" role="list">
+      {
+        awards.map((a) => (
+          <li class="home-award">
+            <span class="home-award__year">{a.years}</span>
+            <div>
+              <h3 class="home-award__title">{a.title}</h3>
+              <p class="home-award__body">{a.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</SiteLayout>

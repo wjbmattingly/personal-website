@@ -1,0 +1,184 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import SiteLayout from "../components/SiteLayout.astro";
+import { site } from "../config/site";
+
+const raw = await getCollection("software");
+const sorted = raw.sort((a, b) => a.data.order - b.data.order);
+
+const blocks = await Promise.all(
+  sorted.map(async (p: CollectionEntry<"software">) => {
+    const { Content } = await render(p);
+    return { entry: p, Content };
+  })
+);
+---
+
+<SiteLayout
+  title="Software"
+  description={`Open-source software and libraries by ${site.author}.`}
+>
+  <div class="page wrap--reading">
+    <header class="page__header">
+      <p class="page__eyebrow">Open-source software</p>
+      <h1 class="page__title">Software</h1>
+    </header>
+
+    <ul class="software-list" role="list">
+      {
+        blocks.map(({ entry: p, Content }) => (
+          <li class="software-item">
+            <div class="software-item__head">
+              {p.data.image ? (
+                <div class="software-item__icon">
+                  <img
+                    src={p.data.image}
+                    alt=""
+                    width={120}
+                    height={120}
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div class="software-item__icon software-item__icon--placeholder" aria-hidden="true">
+                  {p.data.title[0]}
+                </div>
+              )}
+              <div class="software-item__meta">
+                <h2 class="software-item__title">{p.data.title}</h2>
+                <ul class="software-item__links">
+                  {p.data.pypi ? (
+                    <li>
+                      <a href={`https://pypi.org/project/${p.data.pypi}/`} rel="noreferrer">
+                        PyPI
+                      </a>
+                    </li>
+                  ) : null}
+                  {p.data.sourceUrl ? (
+                    <li>
+                      <a href={p.data.sourceUrl} rel="noreferrer">
+                        Source
+                      </a>
+                    </li>
+                  ) : null}
+                </ul>
+              </div>
+            </div>
+            <div class="prose prose--wide software-item__body">
+              <Content />
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</SiteLayout>
+
+<style>
+  .software-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .software-item {
+    padding: 2rem 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .software-item:last-child {
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .software-item__head {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .software-item__icon {
+    width: 4.5rem;
+    height: 4.5rem;
+    background: var(--color-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+  }
+
+  .software-item__icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .software-item__icon--placeholder {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    background: var(--color-bg-warm);
+  }
+
+  .software-item__title {
+    font-family: var(--font-serif);
+    font-size: 1.55rem;
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0 0 0.35rem;
+    color: var(--color-text);
+  }
+
+  .software-item__links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .software-item__links li:not(:last-child)::after {
+    content: "·";
+    margin-left: 0.75rem;
+    color: var(--color-text-faint);
+  }
+
+  .software-item__links a {
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-ink);
+    text-transform: uppercase;
+    font-size: 0.72rem;
+  }
+
+  .software-item__links a:hover {
+    color: var(--color-accent);
+  }
+
+  .software-item__body {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  @media (max-width: 32rem) {
+    .software-item__head {
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+      gap: 0.9rem;
+    }
+    .software-item__icon {
+      width: 3.25rem;
+      height: 3.25rem;
+    }
+  }
+</style>

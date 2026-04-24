@@ -1,0 +1,141 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import { site } from "../config/site";
+
+const first = site.author.split(" ")[0];
+---
+
+<SiteLayout title="About" description={`About ${site.author}.`}>
+  <div class="page">
+    <header class="page__header">
+      <p class="page__eyebrow">Hi, I'm {first}.</p>
+      <h1 class="page__title">About {first}</h1>
+    </header>
+
+    <div class="about-grid">
+      <article class="prose prose--wide about-intro">
+        <p>
+          I wear a lot of hats. I'm a historian, data scientist, and NLP engineer, but I'm also a digital nomad, public
+          speaker, and content producer. I work primarily with multilingual documents and develop tools to help process
+          them more easily.
+        </p>
+        <p>
+          I'm currently the Cultural Heritage Data Scientist at Yale University. I was the former postdoc for machine
+          learning at the Smithsonian Institution's Data Science Lab. I'm also attached to a few projects, such as the
+          Bitter Aloe Project, Placing the Holocaust, Personal Writes the Political, and TheirStory. For each of these
+          projects, I've developed custom solutions to solve real-world problems. Think I'm a good fit for you? Consider
+          booking a consultation with me down below.
+        </p>
+        <p class="about-links">
+          <a href="/contact">Contact</a> <span aria-hidden="true">·</span>
+          <a href="/curriculum-vitae">Curriculum vitae</a>
+        </p>
+      </article>
+
+      <aside class="about-aside" aria-labelledby="approach">
+        <h2 id="approach" class="about-aside__title">My approach</h2>
+        <p class="about-aside__lede">
+          I approach every problem the same. I listen so that I can understand. I have the most fun when I work with
+          data that I have never encountered. It presents new challenges and keeps things interesting. I've worked on
+          projects ranging from training machine learning models to transcribe medieval manuscripts to identifying named
+          entities in Holocaust documents in 15 languages. And here's one thing I've learned: vastly different data
+          doesn't necessarily mean vastly different solutions.
+        </p>
+
+        <div class="about-step">
+          <h3 class="about-step__title">Listen &amp; understand</h3>
+          <p class="about-step__body">
+            When I work on a project, I'm rarely the content expert. I spend most of my time early in the project
+            listening to you describe your particular problem so that I can understand not only how to build a solution,
+            but build a reproducible solution.
+          </p>
+        </div>
+
+        <div class="about-step">
+          <h3 class="about-step__title">Build it</h3>
+          <p class="about-step__body">
+            Once I get a sense of your data, I immediately go to work and start tailoring a custom solution for you. I
+            primarily work with Python, but am comfortable in R as well.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</SiteLayout>
+
+<style>
+  .about-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  @media (max-width: 52rem) {
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .about-intro {
+    max-width: 34rem;
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+
+  .about-links {
+    margin-top: 1.5rem;
+    color: var(--color-text-faint);
+  }
+
+  .about-aside {
+    padding: 1.75rem 1.75rem 1.5rem;
+    background: var(--color-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius);
+  }
+
+  .about-aside__title {
+    font-family: var(--font-serif);
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0.35rem 0 0.75rem;
+    color: var(--color-text);
+  }
+
+  .about-aside__lede {
+    margin: 0 0 1.5rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+
+  .about-step {
+    padding-top: 1.1rem;
+    margin-top: 1.1rem;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .about-step__num {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--color-accent);
+    margin: 0 0 0.25rem;
+  }
+
+  .about-step__title {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+    color: var(--color-text);
+  }
+
+  .about-step__body {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+  }
+</style>

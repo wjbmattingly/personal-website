@@ -1,0 +1,41 @@
+---
+import { getEntry, render } from "astro:content";
+import SiteLayout from "../components/SiteLayout.astro";
+
+const post = await getEntry("pages", "curriculum-vitae");
+if (!post) {
+  throw new Error("CV page not found in content");
+}
+const { Content } = await render(post);
+---
+
+<SiteLayout title="Curriculum vitae" description={post.data.description ?? "Curriculum vitae."}>
+  <article class="page wrap--reading">
+    <header class="page__header">
+      <h1 class="page__title cv-title">curriculum vitae</h1>
+    </header>
+    <div class="prose prose--wide cv-body">
+      <Content />
+    </div>
+  </article>
+</SiteLayout>
+
+<style>
+  .cv-title {
+    letter-spacing: 0.01em;
+  }
+  .cv-body :global(h2) {
+    margin-top: 2.5rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+  }
+
+  .cv-body :global(h3) {
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,224 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import SiteLayout from "../../components/SiteLayout.astro";
+import { formatEventRange, formatCalendarDay } from "../../lib/dates";
+import { getTalkWindowEnd, getEventCalendarYear } from "../../lib/talks-time";
+import { site } from "../../config/site";
+import { TALK_SIDEBAR_YEARS } from "../../config/talk-years";
+import "../../styles/talks.css";
+
+const raw = await getCollection("talks");
+const talks = raw.sort((a, b) => b.data.eventDate.getTime() - a.data.eventDate.getTime());
+type Talk = CollectionEntry<"talks">;
+---
+
+<SiteLayout title="Talks" description={`Talks, workshops, and panels by ${site.author}.`}>
+  <div class="page">
+    <header class="page__header">
+      <p class="page__eyebrow">Learn &amp; build</p>
+      <h1 class="page__title">Talks</h1>
+    </header>
+
+    <div class="talks-layout">
+      <aside class="talks-sidebar" aria-label="Filter by year">
+        <p class="talks-sidebar__label">Year</p>
+        {
+          TALK_SIDEBAR_YEARS.map((y) => (
+            <a
+              class="talk-year-link"
+              href={`/talks?year=${y}`}
+              data-year={y}
+              data-talk-year-btn
+            >
+              {y}
+            </a>
+          ))
+        }
+      </aside>
+
+      <div class="talks-main">
+        <section class="talks-section" id="upcoming-section" aria-labelledby="upcoming-heading">
+          <header class="talks-section__head">
+            <h2 id="upcoming-heading" class="talks-section__title">Upcoming</h2>
+          </header>
+          <p id="upcoming-empty" class="talks-empty" style="display: none">No upcoming talks scheduled.</p>
+          <div id="upcoming-list" class="talks-dynamic"></div>
+        </section>
+
+        <section class="talks-section" id="past-section" aria-labelledby="past-heading">
+          <header class="talks-section__head">
+            <h2 id="past-heading" class="talks-section__title">
+              Talks in <span id="past-year-label">—</span>
+            </h2>
+          </header>
+          <p id="past-empty" class="talks-empty" style="display: none">No talks in this year yet.</p>
+          <div id="past-list" class="talks-dynamic"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="talk-staging" style="display: none" aria-hidden="true">
+    {
+      talks.map((t: Talk) => {
+        const d = t.data;
+        const cal = formatCalendarDay(d.eventDate);
+        const end = getTalkWindowEnd(d.eventDate, d.endDate);
+        const eventYear = getEventCalendarYear(d.eventDate);
+        return (
+          <article
+            class="talk-list-item"
+            data-talk-end={end.toISOString()}
+            data-event-year={eventYear}
+            data-talk-id={t.id}
+          >
+            <div class="talk-date">
+              <div class="talk-date__month">{cal.month}</div>
+              <div class="talk-date__day">{cal.day}</div>
+              {d.endDate ? (
+                <div class="talk-date__end">
+                  → {formatCalendarDay(d.endDate).month} {formatCalendarDay(d.endDate).day}
+                </div>
+              ) : null}
+            </div>
+            <div>
+              <h3 class="talk-title">
+                <a href={`/talks/${t.id}`}>{d.title}</a>
+              </h3>
+              <p class="talk-when">
+                {formatEventRange(d.eventDate, d.endDate)}
+                {d.timeLabel ? ` · ${d.timeLabel}` : ""}
+              </p>
+              {d.location ? (
+                <p class="talk-where">
+                  {d.mapUrl ? (
+                    <a href={d.mapUrl} rel="noreferrer">
+                      {d.location} (map)
+                    </a>
+                  ) : (
+                    d.location
+                  )}
+                </p>
+              ) : null}
+              {d.description ? <p class="talk-desc">{d.description}</p> : null}
+              <ul class="talk-links">
+                {d.gcalUrl ? (
+                  <li>
+                    <a href={d.gcalUrl} rel="noreferrer">
+                      Google Calendar
+                    </a>
+                  </li>
+                ) : null}
+                {d.icsUrl ? (
+                  <li>
+                    <a href={d.icsUrl} rel="noreferrer">
+                      ICS
+                    </a>
+                  </li>
+                ) : null}
+                <li>
+                  <a href={`/talks/${t.id}`} class="talk-links__details">
+                    Details →
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </article>
+        );
+      })
+    }
+  </div>
+</SiteLayout>
+
+<script is:inline>
+  (function () {
+    var staging = document.getElementById("talk-staging");
+    var upcomingList = document.getElementById("upcoming-list");
+    var pastList = document.getElementById("past-list");
+    var upcomingEmpty = document.getElementById("upcoming-empty");
+    var pastEmpty = document.getElementById("past-empty");
+    var pastYearLabel = document.getElementById("past-year-label");
+    if (!staging || !upcomingList || !pastList) return;
+
+    var now = new Date();
+    var articles = Array.prototype.slice.call(staging.querySelectorAll("article[data-talk-end]"));
+
+    function getSelectedYear() {
+      var p = new URLSearchParams(window.location.search);
+      var y = parseInt(p.get("year") || "", 10);
+      if (!y || isNaN(y)) y = new Date().getFullYear();
+      return y;
+    }
+
+    function setSelectedYear(y) {
+      var u = new URL(window.location.href);
+      u.searchParams.set("year", String(y));
+      window.history.replaceState({}, "", u.pathname + u.search + u.hash);
+    }
+
+    function filterPastByYear(y) {
+      var n = 0;
+      pastList.querySelectorAll("article[data-event-year]").forEach(function (art) {
+        var ey = parseInt(art.getAttribute("data-event-year"), 10);
+        var show = ey === y;
+        art.style.display = show ? "" : "none";
+        if (show) n++;
+      });
+      if (pastYearLabel) pastYearLabel.textContent = String(y);
+      if (pastEmpty) pastEmpty.style.display = n ? "none" : "block";
+    }
+
+    function setYearNavActive(y) {
+      document.querySelectorAll("[data-talk-year-btn]").forEach(function (btn) {
+        var by = parseInt(btn.getAttribute("data-year"), 10);
+        var on = by === y;
+        btn.classList.toggle("is-active", on);
+        btn.setAttribute("aria-current", on ? "true" : "false");
+      });
+    }
+
+    function run() {
+      var y = getSelectedYear();
+      setYearNavActive(y);
+      setSelectedYear(y);
+
+      var upN = 0;
+      articles.forEach(function (art) {
+        var end = new Date(art.getAttribute("data-talk-end"));
+        var isUp = now <= end;
+        if (isUp) {
+          upcomingList.appendChild(art);
+          upN++;
+        } else {
+          pastList.appendChild(art);
+        }
+      });
+      staging.innerHTML = "";
+      staging.remove();
+
+      if (upcomingEmpty) upcomingEmpty.style.display = upN ? "none" : "block";
+
+      filterPastByYear(y);
+    }
+
+    document.querySelectorAll("[data-talk-year-btn]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        var y = parseInt(btn.getAttribute("data-year"), 10);
+        var u = new URL(window.location.href);
+        u.searchParams.set("year", String(y));
+        window.history.pushState({}, "", u.pathname + u.search + u.hash);
+        filterPastByYear(y);
+        setYearNavActive(y);
+      });
+    });
+
+    window.addEventListener("popstate", function () {
+      var y = getSelectedYear();
+      filterPastByYear(y);
+      setYearNavActive(y);
+    });
+
+    run();
+  })();
+</script>

@@ -1,0 +1,92 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import { site, social } from "../config/site";
+---
+
+<SiteLayout
+  title="Contact"
+  description={`Reach out for consulting, speaking, or teaching with ${site.author}.`}
+>
+  <div class="page wrap--reading">
+    <header class="page__header">
+      <h1 class="page__title">Contact me</h1>
+      <p class="page__lede">
+        For inquiries about consulting, speaking, or teaching a course, please feel free to reach out here.
+      </p>
+    </header>
+
+    <section class="contact-links">
+      <ul class="contact-links__list">
+        {
+          social.map((s) => (
+            <li class="contact-link">
+              <a href={s.href} rel="noreferrer" class="contact-link__a">
+                <span class="contact-link__name">{s.name}</span>
+                <span class="contact-link__arrow" aria-hidden="true">→</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <p class="contact-note">
+      You can add a mailto link, a hosted form (e.g. Formspree), or another contact method in this file when you are
+      ready.
+    </p>
+  </div>
+</SiteLayout>
+
+<style>
+  .contact-links {
+    margin-top: 2rem;
+  }
+
+  .contact-links__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .contact-link {
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .contact-link__a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0.25rem 1rem 0;
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.15s ease, padding-left 0.2s ease;
+  }
+
+  .contact-link__a:hover {
+    color: var(--color-accent);
+    padding-left: 0.5rem;
+  }
+
+  .contact-link__arrow {
+    font-family: var(--font-sans);
+    font-size: 1.1rem;
+    color: var(--color-text-faint);
+    transition: transform 0.18s ease, color 0.15s ease;
+  }
+
+  .contact-link__a:hover .contact-link__arrow {
+    transform: translateX(3px);
+    color: var(--color-accent);
+  }
+
+  .contact-note {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--color-text-faint);
+  }
+</style>

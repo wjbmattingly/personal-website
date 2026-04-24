@@ -1,0 +1,85 @@
+---
+import { getCollection, getEntry, render, type CollectionEntry } from "astro:content";
+import SiteLayout from "../../components/SiteLayout.astro";
+import { formatEventRange } from "../../lib/dates";
+import { site } from "../../config/site";
+import "../../styles/talks.css";
+
+export async function getStaticPaths() {
+  const talks = await getCollection("talks");
+  return talks.map((t) => ({ params: { slug: t.id } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect("/404");
+}
+const post = (await getEntry("talks", slug)) as CollectionEntry<"talks"> | undefined;
+if (!post) {
+  return Astro.redirect("/404");
+}
+const d = post.data;
+const { Content } = await render(post);
+---
+
+<SiteLayout
+  title={d.title}
+  description={d.description ?? d.title + ` — talk by ` + site.author + `.`}
+>
+  <article class="page wrap--reading">
+    <header class="talk-detail-header">
+      <p class="talk-detail-header__eyebrow">Talk</p>
+      <h1 class="talk-detail-header__title">{d.title}</h1>
+      <dl class="talk-detail-header__meta">
+        <div>
+          <dt>Date</dt>
+          <dd>
+            {formatEventRange(d.eventDate, d.endDate)}
+            {d.timeLabel ? ` · ${d.timeLabel}` : ""}
+          </dd>
+        </div>
+        {d.location ? (
+          <div>
+            <dt>Where</dt>
+            <dd>
+              {d.mapUrl ? (
+                <a href={d.mapUrl} rel="noreferrer">
+                  {d.location}
+                </a>
+              ) : (
+                d.location
+              )}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+      {d.gcalUrl || d.icsUrl ? (
+        <ul class="talk-detail-actions">
+          {d.gcalUrl ? (
+            <li>
+              <a href={d.gcalUrl} rel="noreferrer">
+                Add to Google Calendar
+              </a>
+            </li>
+          ) : null}
+          {d.icsUrl ? (
+            <li>
+              <a href={d.icsUrl} rel="noreferrer">
+                Download .ics
+              </a>
+            </li>
+          ) : null}
+        </ul>
+      ) : null}
+    </header>
+    <div class="prose prose--wide talk-body mdx">
+      <Content />
+    </div>
+  </article>
+</SiteLayout>
+
+<style>
+  .talk-body {
+    margin-top: 2rem;
+  }
+</style>

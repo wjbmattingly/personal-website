@@ -1,0 +1,67 @@
+---
+import SiteLayout from "../components/SiteLayout.astro";
+import { site } from "../config/site";
+---
+
+<SiteLayout title="Not found" description="Page not found.">
+  <div class="not-found">
+    <div class="not-found__glyph" aria-hidden="true"></div>
+    <h1 class="not-found__title">Page not found</h1>
+    <p class="not-found__body">That URL does not exist on this site.</p>
+    <p class="not-found__back">
+      <a href="/">Back to {site.title.split(",")[0]}</a>
+    </p>
+  </div>
+</SiteLayout>
+
+<style>
+  .not-found {
+    max-width: 32rem;
+    margin: 0 auto;
+    padding: 5rem var(--content-pad) 6rem;
+    text-align: center;
+  }
+
+  .not-found__glyph {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border-subtle);
+    position: relative;
+  }
+
+  .not-found__glyph::before,
+  .not-found__glyph::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.35rem;
+    height: 1px;
+    background: var(--color-accent);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .not-found__glyph::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .not-found__title {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+  }
+
+  .not-found__body {
+    margin: 0 0 2rem;
+    color: var(--color-text-muted);
+  }
+
+  .not-found__back a {
+    font-size: 0.95rem;
+  }
+</style>
