@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../components/SiteLayout.astro";
 import { site } from "../config/site";
+import { url } from "../lib/url";
 ---
 
 <SiteLayout title="Not found" description="Page not found.">
@@ -9,7 +10,7 @@ import { site } from "../config/site";
     <h1 class="not-found__title">Page not found</h1>
     <p class="not-found__body">That URL does not exist on this site.</p>
     <p class="not-found__back">
-      <a href="/">Back to {site.title.split(",")[0]}</a>
+      <a href={url("/")}>Back to {site.title.split(",")[0]}</a>
     </p>
   </div>
 </SiteLayout>

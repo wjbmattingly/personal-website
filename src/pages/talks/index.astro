@@ -5,6 +5,7 @@ import { formatEventRange, formatCalendarDay } from "../../lib/dates";
 import { getTalkWindowEnd, getEventCalendarYear } from "../../lib/talks-time";
 import { site } from "../../config/site";
 import { TALK_SIDEBAR_YEARS } from "../../config/talk-years";
+import { url } from "../../lib/url";
 import "../../styles/talks.css";
 
 const raw = await getCollection("talks");
@@ -26,7 +27,7 @@ type Talk = CollectionEntry<"talks">;
           TALK_SIDEBAR_YEARS.map((y) => (
             <a
               class="talk-year-link"
-              href={`/talks?year=${y}`}
+              href={url(`/talks?year=${y}`)}
               data-year={y}
               data-talk-year-btn
             >
@@ -83,7 +84,7 @@ type Talk = CollectionEntry<"talks">;
             </div>
             <div>
               <h3 class="talk-title">
-                <a href={`/talks/${t.id}`}>{d.title}</a>
+                <a href={url(`/talks/${t.id}`)}>{d.title}</a>
               </h3>
               <p class="talk-when">
                 {formatEventRange(d.eventDate, d.endDate)}
@@ -117,7 +118,7 @@ type Talk = CollectionEntry<"talks">;
                   </li>
                 ) : null}
                 <li>
-                  <a href={`/talks/${t.id}`} class="talk-links__details">
+                  <a href={url(`/talks/${t.id}`)} class="talk-links__details">
                     Details →
                   </a>
                 </li>

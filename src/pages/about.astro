@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../components/SiteLayout.astro";
 import { site } from "../config/site";
+import { url } from "../lib/url";
 
 const first = site.author.split(" ")[0];
 ---
@@ -27,8 +28,8 @@ const first = site.author.split(" ")[0];
           booking a consultation with me down below.
         </p>
         <p class="about-links">
-          <a href="/contact">Contact</a> <span aria-hidden="true">·</span>
-          <a href="/curriculum-vitae">Curriculum vitae</a>
+          <a href={url("/contact")}>Contact</a> <span aria-hidden="true">·</span>
+          <a href={url("/curriculum-vitae")}>Curriculum vitae</a>
         </p>
       </article>
 

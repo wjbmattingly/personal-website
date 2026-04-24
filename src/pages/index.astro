@@ -1,6 +1,7 @@
 ---
 import SiteLayout from "../components/SiteLayout.astro";
 import { site, awards, contact } from "../config/site";
+import { url } from "../lib/url";
 import "../styles/home.css";
 
 const firstName = site.author.split(" ")[0];
@@ -29,7 +30,7 @@ const services = [
 <SiteLayout
   title={site.title}
   description={site.description}
-  ogImage={new URL("/images/wjb-mattingly.jpg", Astro.site).href}
+  ogImage={new URL(url("/images/wjb-mattingly.jpg"), Astro.site).href}
   mainClass="home-main"
 >
   <section class="home-hero" aria-labelledby="home-heading">
@@ -57,7 +58,7 @@ const services = [
 
       <figure class="home-hero__portrait">
         <img
-          src="/images/wjb-mattingly.jpg"
+          src={url("/images/wjb-mattingly.jpg")}
           alt="William Mattingly"
           width={800}
           height={1000}
@@ -66,7 +67,7 @@ const services = [
         />
         <img
           class="home-hero__portrait-inset"
-          src="/images/hero-travel.jpg"
+          src={url("/images/hero-travel.jpg")}
           alt="Open landscape, travel and research"
           width={1000}
           height={800}
@@ -101,7 +102,7 @@ const services = [
       Before working with clients, I like to meet, learn about your challenges, and look at your data. Book a time that
       works for you.
     </p>
-    <a class="home-cta__btn" href={contact.bookConsult.href}>
+    <a class="home-cta__btn" href={url(contact.bookConsult.href)}>
       {contact.bookConsult.label}
       <span class="home-cta__btn-arrow" aria-hidden="true">→</span>
     </a>

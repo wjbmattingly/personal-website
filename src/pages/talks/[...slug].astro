@@ -3,6 +3,7 @@ import { getCollection, getEntry, render, type CollectionEntry } from "astro:con
 import SiteLayout from "../../components/SiteLayout.astro";
 import { formatEventRange } from "../../lib/dates";
 import { site } from "../../config/site";
+import { url } from "../../lib/url";
 import "../../styles/talks.css";
 
 export async function getStaticPaths() {
@@ -12,11 +13,11 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 if (!slug) {
-  return Astro.redirect("/404");
+  return Astro.redirect(url("/404"));
 }
 const post = (await getEntry("talks", slug)) as CollectionEntry<"talks"> | undefined;
 if (!post) {
-  return Astro.redirect("/404");
+  return Astro.redirect(url("/404"));
 }
 const d = post.data;
 const { Content } = await render(post);

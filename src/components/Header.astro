@@ -1,5 +1,6 @@
 ---
 import { site, contact } from "../config/site";
+import { url } from "../lib/url";
 
 const links: { href: string; label: string }[] = [
   { href: "/talks", label: "Talks" },
@@ -18,7 +19,7 @@ const initials = site.author
 
 <header class="site-header">
   <div class="wrap wrap--wide site-header__inner">
-    <a href="/" class="site-header__brand" aria-label={`${site.author} home`}>
+    <a href={url("/")} class="site-header__brand" aria-label={`${site.author} home`}>
       <span class="site-header__mark" aria-hidden="true">{initials}</span>
       <span class="site-header__name">{site.author}</span>
     </a>
@@ -26,12 +27,12 @@ const initials = site.author
     <nav class="main-nav" aria-label="Primary">
       {
         links.map((l) => (
-          <a href={l.href} class="main-nav__link">
+          <a href={url(l.href)} class="main-nav__link">
             {l.label}
           </a>
         ))
       }
-      <a href={contact.bookConsult.href} class="main-nav__cta">
+      <a href={url(contact.bookConsult.href)} class="main-nav__cta">
         {contact.bookConsult.label}
       </a>
     </nav>
@@ -45,12 +46,12 @@ const initials = site.author
       <div class="mobile-menu__panel" role="navigation" aria-label="Mobile">
         {
           links.map((l) => (
-            <a href={l.href} class="mobile-menu__link">
+            <a href={url(l.href)} class="mobile-menu__link">
               {l.label}
             </a>
           ))
         }
-        <a href={contact.bookConsult.href} class="mobile-menu__cta">
+        <a href={url(contact.bookConsult.href)} class="mobile-menu__cta">
           {contact.bookConsult.label}
         </a>
       </div>
