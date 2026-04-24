@@ -34,7 +34,7 @@ const blocks = await Promise.all(
             {p.data.image ? (
               <div class="project-item__media">
                 <img
-                  src={p.data.image}
+                  src={url(p.data.image)}
                   alt=""
                   width={400}
                   height={280}

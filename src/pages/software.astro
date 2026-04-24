@@ -2,6 +2,7 @@
 import { getCollection, render, type CollectionEntry } from "astro:content";
 import SiteLayout from "../components/SiteLayout.astro";
 import { site } from "../config/site";
+import { url } from "../lib/url";
 
 const raw = await getCollection("software");
 const sorted = raw.sort((a, b) => a.data.order - b.data.order);
@@ -32,7 +33,7 @@ const blocks = await Promise.all(
               {p.data.image ? (
                 <div class="software-item__icon">
                   <img
-                    src={p.data.image}
+                    src={url(p.data.image)}
                     alt=""
                     width={120}
                     height={120}
