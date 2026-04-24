@@ -26,11 +26,8 @@ const blocks = await Promise.all(
 
     <ul class="project-list" role="list">
       {
-        blocks.map(({ entry: p, Content }, i) => (
+        blocks.map(({ entry: p, Content }) => (
           <li class="project-item">
-            <div class="project-item__index" aria-hidden="true">
-              {String(i + 1).padStart(2, "0")}
-            </div>
             {p.data.image ? (
               <div class="project-item__media">
                 <img
@@ -75,7 +72,7 @@ const blocks = await Promise.all(
 
   .project-item {
     display: grid;
-    grid-template-columns: 3rem 11rem minmax(0, 1fr);
+    grid-template-columns: 11rem minmax(0, 1fr);
     gap: 1.5rem 2rem;
     align-items: start;
     padding: 2.25rem 0;
@@ -88,31 +85,11 @@ const blocks = await Promise.all(
 
   @media (max-width: 52rem) {
     .project-item {
-      grid-template-columns: 2.5rem minmax(0, 1fr);
+      grid-template-columns: 1fr;
     }
     .project-item__media {
-      grid-column: 1 / -1;
-      max-width: 100%;
+      max-width: 18rem;
     }
-  }
-
-  @media (max-width: 36rem) {
-    .project-item {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-    .project-item__index {
-      font-size: 0.85rem;
-    }
-  }
-
-  .project-item__index {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-size: 1rem;
-    color: var(--color-accent);
-    line-height: 1.4;
-    padding-top: 0.35rem;
   }
 
   .project-item__media {

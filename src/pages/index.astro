@@ -10,17 +10,14 @@ const rolePills = ["digital nomad", "NLP engineer", "historian", "public speaker
 
 const services = [
   {
-    n: "01",
     title: "Contracting",
     body: `Hiring ${firstName} as a data scientist brings machine learning and NLP expertise to your team.`,
   },
   {
-    n: "02",
     title: "Courses",
     body: `From data literacy to machine learning, ${firstName} can teach you or your organization.`,
   },
   {
-    n: "03",
     title: "Public speaking",
     body: "Available for in-person or online keynotes, panels, and workshops.",
   },
@@ -51,8 +48,7 @@ const services = [
           {site.author}<span class="home-hero__suffix">PhD</span>
         </h1>
         <p class="home-hero__lead">
-          {site.description} I work with partners from museums and libraries to build practical ML: teaching, consulting,
-          and public talks.
+          {site.description} I work with partners from museums and libraries to build practical ML.
         </p>
       </div>
 
@@ -85,7 +81,6 @@ const services = [
       {
         services.map((s) => (
           <li class="home-service">
-            <span class="home-service__num">{s.n}</span>
             <h3 class="home-service__title">{s.title}</h3>
             <p class="home-service__body">{s.body}</p>
           </li>
