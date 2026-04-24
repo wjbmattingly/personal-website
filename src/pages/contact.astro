@@ -15,6 +15,59 @@ import { site, social } from "../config/site";
       </p>
     </header>
 
+    <form class="contact-form" action="https://formspree.io/f/xlgazjyw" method="POST">
+      <fieldset class="contact-form__group">
+        <legend class="contact-form__legend">Name</legend>
+        <div class="contact-form__row">
+          <label class="contact-form__field">
+            <span class="contact-form__label">First name</span>
+            <input type="text" name="first-name" required />
+          </label>
+          <label class="contact-form__field">
+            <span class="contact-form__label">Last name</span>
+            <input type="text" name="last-name" required />
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="contact-form__field">
+        <span class="contact-form__label">Email</span>
+        <input type="email" name="email" required />
+      </label>
+
+      <label class="contact-form__field">
+        <span class="contact-form__label">Subject</span>
+        <input type="text" name="subject" required />
+      </label>
+
+      <label class="contact-form__field">
+        <span class="contact-form__label">Message</span>
+        <textarea name="message" rows="6" required></textarea>
+      </label>
+
+      <fieldset class="contact-form__group">
+        <legend class="contact-form__legend">Inquiring about</legend>
+        <div class="contact-form__checks">
+          {
+            [
+              "Consulting",
+              "Public Speaking",
+              "Teaching a Course",
+              "Promotional Content",
+              "General Information",
+            ].map((opt) => (
+              <label class="contact-form__check">
+                <input type="checkbox" name="inquiry" value={opt} />
+                <span>{opt}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      <button type="submit" class="contact-form__submit">Submit</button>
+    </form>
+
     <section class="contact-links">
       <ul class="contact-links__list">
         {
@@ -29,24 +82,149 @@ import { site, social } from "../config/site";
         }
       </ul>
     </section>
-
-    <p class="contact-note">
-      You can add a mailto link, a hosted form (e.g. Formspree), or another contact method in this file when you are
-      ready.
-    </p>
   </div>
 </SiteLayout>
 
 <style>
-  .contact-links {
+  .contact-form {
     margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .contact-form__group {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .contact-form__legend {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+    padding: 0;
+    margin-bottom: 0.35rem;
+  }
+
+  .contact-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 32rem) {
+    .contact-form__row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .contact-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .contact-form__label {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-text-faint);
+  }
+
+  .contact-form input[type="text"],
+  .contact-form input[type="email"],
+  .contact-form textarea {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg-warm);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius);
+    padding: 0.7rem 0.85rem;
+    width: 100%;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+
+  .contact-form input[type="text"]:focus,
+  .contact-form input[type="email"]:focus,
+  .contact-form textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: var(--color-elevated);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  .contact-form textarea {
+    resize: vertical;
+    min-height: 8rem;
+  }
+
+  .contact-form__checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.5rem 1.25rem;
+  }
+
+  .contact-form__check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.98rem;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .contact-form__check input {
+    accent-color: var(--color-accent);
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .contact-form__submit {
+    align-self: flex-start;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-bg);
+    background: var(--color-ink);
+    border: 1px solid var(--color-ink);
+    border-radius: 999px;
+    padding: 0.7rem 1.6rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+
+  .contact-form__submit:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  .contact-form__submit:active {
+    transform: translateY(1px);
+  }
+
+  .contact-links {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border-subtle);
   }
 
   .contact-links__list {
     list-style: none;
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--color-border-subtle);
   }
 
   .contact-link {
