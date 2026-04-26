@@ -49,4 +49,23 @@ const pages = defineCollection({
   }),
 });
 
-export const collections = { talks, projects, software, pages };
+const blog = defineCollection({
+  loader: glob({
+    base: "./src/content/blog",
+    pattern: ["**/*.{md,mdx}", "!**/README.md", "!**/_*.{md,mdx}"],
+  }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    pubDate: z.coerce.date(),
+    updatedDate: z.coerce.date().optional(),
+    author: z.string().optional(),
+    tags: z.array(z.string()).optional().default([]),
+    /** Path under /public, e.g. /images/blog/hero.jpg */
+    image: z.string().optional(),
+    imageAlt: z.string().optional(),
+    draft: z.boolean().optional().default(false),
+  }),
+});
+
+export const collections = { talks, projects, software, pages, blog };

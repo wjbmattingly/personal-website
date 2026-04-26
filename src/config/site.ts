@@ -12,7 +12,7 @@ export const site = {
 
 export const contact = {
   bookConsult: {
-    label: "Book a free consultation",
+    label: "Contact",
     href: "/contact",
   },
 } as const;

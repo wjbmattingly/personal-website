@@ -1,0 +1,83 @@
+---
+import { getCollection, getEntry, render, type CollectionEntry } from "astro:content";
+import SiteLayout from "../../components/SiteLayout.astro";
+import { site } from "../../config/site";
+import { url } from "../../lib/url";
+import { formatPostDate, isoDate } from "../../lib/dates";
+import "../../styles/blog.css";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog", ({ data }) => import.meta.env.PROD ? !data.draft : true);
+  return posts.map((p: CollectionEntry<"blog">) => ({ params: { slug: p.id } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect(url("/404"));
+}
+const post = (await getEntry("blog", slug)) as CollectionEntry<"blog"> | undefined;
+if (!post) {
+  return Astro.redirect(url("/404"));
+}
+const d = post.data;
+const { Content } = await render(post);
+
+const pageTitle = d.title;
+const pageDesc = d.description ?? `${d.title} — a post by ${site.author}.`;
+const ogImage = d.image ? new URL(url(d.image), Astro.site).href : undefined;
+---
+
+<SiteLayout title={pageTitle} description={pageDesc} ogImage={ogImage}>
+  <article class="page wrap--reading">
+    <header class="blog-detail-header">
+      <p class="blog-detail-header__eyebrow">Blog</p>
+      <h1 class="blog-detail-header__title">{d.title}</h1>
+      {d.description ? (
+        <p class="blog-detail-header__lede">{d.description}</p>
+      ) : null}
+      <dl class="blog-detail-header__meta">
+        <div>
+          <dt class="sr-only">Published</dt>
+          <dd>
+            <time datetime={isoDate(d.pubDate)}>{formatPostDate(d.pubDate)}</time>
+          </dd>
+        </div>
+        {d.updatedDate ? (
+          <div>
+            <dt class="sr-only">Updated</dt>
+            <dd>
+              Updated <time datetime={isoDate(d.updatedDate)}>{formatPostDate(d.updatedDate)}</time>
+            </dd>
+          </div>
+        ) : null}
+        {d.author ? (
+          <div>
+            <dt class="sr-only">Author</dt>
+            <dd>By {d.author}</dd>
+          </div>
+        ) : null}
+      </dl>
+      {d.tags && d.tags.length > 0 ? (
+        <ul class="blog-tags" role="list" style="margin-top: 1rem;">
+          {d.tags.map((t) => (
+            <li class="blog-tag">{t}</li>
+          ))}
+        </ul>
+      ) : null}
+    </header>
+
+    {d.image ? (
+      <figure class="blog-hero">
+        <img src={url(d.image)} alt={d.imageAlt ?? ""} loading="eager" fetchpriority="high" />
+      </figure>
+    ) : null}
+
+    <div class="prose prose--wide blog-body mdx">
+      <Content />
+    </div>
+
+    <p class="blog-back">
+      <a href={url("/blog")}>← All posts</a>
+    </p>
+  </article>
+</SiteLayout>

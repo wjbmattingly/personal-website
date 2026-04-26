@@ -19,3 +19,15 @@ export function formatCalendarDay(d: Date) {
     day: new Intl.DateTimeFormat("en-US", { day: "numeric" }).format(d),
   };
 }
+
+export function formatPostDate(d: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(d);
+}
+
+export function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}

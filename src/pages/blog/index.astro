@@ -1,0 +1,62 @@
+---
+import { getCollection, type CollectionEntry } from "astro:content";
+import SiteLayout from "../../components/SiteLayout.astro";
+import { site } from "../../config/site";
+import { url } from "../../lib/url";
+import { formatPostDate, isoDate } from "../../lib/dates";
+import "../../styles/blog.css";
+
+const raw = await getCollection("blog", ({ data }) => import.meta.env.PROD ? !data.draft : true);
+const posts = raw.sort(
+  (a: CollectionEntry<"blog">, b: CollectionEntry<"blog">) =>
+    b.data.pubDate.getTime() - a.data.pubDate.getTime()
+);
+---
+
+<SiteLayout
+  title="Blog"
+  description={`Notes, essays, and tutorials by ${site.author}.`}
+>
+  <div class="page wrap--reading">
+    <header class="page__header">
+      <p class="page__eyebrow">Writing</p>
+      <h1 class="page__title">Blog</h1>
+      <p class="page__lede">
+        Notes, essays, and tutorials on machine learning, NLP, and the digital humanities.
+      </p>
+    </header>
+
+    {posts.length === 0 ? (
+      <p class="blog-empty">No posts yet — check back soon.</p>
+    ) : (
+      <ul class="blog-list" role="list">
+        {posts.map((p: CollectionEntry<"blog">) => (
+          <li class="blog-item">
+            <time class="blog-item__date" datetime={isoDate(p.data.pubDate)}>
+              {formatPostDate(p.data.pubDate)}
+            </time>
+            <div>
+              <h2 class="blog-item__title">
+                <a href={url(`/blog/${p.id}`)}>{p.data.title}</a>
+              </h2>
+              {p.data.tags && p.data.tags.length > 0 ? (
+                <ul class="blog-tags" role="list">
+                  {p.data.tags.map((t) => (
+                    <li class="blog-tag">{t}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {p.data.description ? (
+                <p class="blog-item__desc">{p.data.description}</p>
+              ) : null}
+              <a class="blog-item__more" href={url(`/blog/${p.id}`)}>
+                Read post
+                <span class="blog-item__more-arrow" aria-hidden="true">→</span>
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</SiteLayout>
