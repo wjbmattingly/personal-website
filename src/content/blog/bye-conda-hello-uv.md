@@ -1,9 +1,9 @@
 ---
 title: "Bye Conda, Hello uv"
-pubDate: 2026-04-25
+pubDate: 2026-04-27
 author: "William Mattingly"
 tags: ["uv", "environment management"]
-draft: true
+draft: false
 ---
 
 Switching a Python project from Conda to [uv](https://docs.astral.sh/uv/) completely changed how I handle local and remote setups. The push came when we hired a new team member who works exclusively on Windows. That platform mismatch exposed the cracks in my old workflow and gave me the perfect excuse to test a faster, stricter alternative.
