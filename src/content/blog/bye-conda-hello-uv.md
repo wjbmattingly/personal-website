@@ -1,9 +1,8 @@
 ---
 title: "Bye Conda, Hello uv"
-pubDate: 2026-04-27
+pubDate: 2026-04-25
 author: "William Mattingly"
 tags: ["uv", "environment management"]
-draft: false
 ---
 
 Switching a Python project from Conda to [uv](https://docs.astral.sh/uv/) completely changed how I handle local and remote setups. The push came when we hired a new team member who works exclusively on Windows. That platform mismatch exposed the cracks in my old workflow and gave me the perfect excuse to test a faster, stricter alternative.
@@ -24,7 +23,7 @@ Long story short, Conda had gradually been growing on my nerves over the past ye
 
 When I first started at Yale in 2024, I continued to use Conda. I mostly worked with one other colleague on machine learning projects and we both used Macs. When I needed to run a job on Yale's HPC cluster, I needed to migrate my codebase to Linux. Yale has a number of HPCs. I mainly use Bouchet for general projects and Hopper for projects containing personally identifiable information. For these purposes, Conda was fine. Transitioning from Mac to Linux is much easier than from Windows to Linux and Conda's limitations were noticeable but ignorable.
 
-Recently, however, we hired a new data engineer who uses a Windows machine. I also was assigned a project that required an AI pipeline to run in real-time on a Windows scanning machine. This meant Windows would be in my life for the foreseeable future and relying on the relatively easy compatibility between Mac and Linux would be something I could no longer take for granted.
+Recently, however, we hired a new data engineer, [Ben Norton](https://github.com/ben-norton) who uses a Windows machine. I also was assigned a project that required an AI pipeline to run in real-time on a Windows scanning machine. This meant Windows would be in my life for the foreseeable future and relying on the relatively easy compatibility between Mac and Linux would be something I could no longer take for granted.
 
 Before on-boarding our new hire, I wanted to make sure all our immediate projects would be available to him. I dusted off my Windows machine and noticed that many projects had trouble starting. I immediately noticed that Conda environments would break. This gave me the perfect opportunity to finally test out uv because this is where uv shines.
 
