@@ -1,6 +1,6 @@
 ---
 title: "Bye Conda, Hello uv"
-pubDate: 2026-04-27
+pubDate: 2026-04-25
 author: "William Mattingly"
 tags: ["uv", "environment management"]
 draft: true
