@@ -5,7 +5,6 @@ description: "We moved from expensive frontier AI to fine-tuned Qwen 3.5 models 
 author: "William Mattingly"
 tags: ["yale", "machine learning", "name parsing"]
 image: "/images/blog/example.jpg"
-draft: true
 ---
 
 We just finished parsing 3.6 million unstructured historical names with 96% accuracy using small, open-source models. 
