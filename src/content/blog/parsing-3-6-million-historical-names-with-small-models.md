@@ -1,10 +1,10 @@
 ---
 title: "Parsing 3.6 Million Historical Names with Small Models"
-pubDate: 2026-05-04
+pubDate: 2026-05-03
 description: "We moved from expensive frontier AI to fine-tuned Qwen 3.5 models to parse historical data, achieving 96% accuracy by switching from JSON to YAML."
 author: "William Mattingly"
 tags: ["yale", "machine learning", "name parsing"]
-image: "/images/blog/example.jpg"
+image: "/images/blog/name-parser.jpg"
 ---
 
 We just finished parsing 3.6 million unstructured historical names with 96% accuracy using small, open-source models. 
