@@ -6,7 +6,7 @@ author: "William Mattingly"
 tags: ["asr", "machine learning", "holocaust"]
 image: "/images/blog/asr-breakdown-fortunoff.jpg"
 imageAlt: "table of results of whisper on fortunoff archive"
-draft: true
+draft: false
 ---
 
 OpenAI's [Whisper](https://github.com/openai/whisper) achieves an 85 percent word-level accuracy when transcribing Holocaust testimonies. My colleague [Christy Bailey-Tomecek](https://library.yale.edu/people/christy-bailey-tomecek) and I analyzed 1,847 audio and video interviews from the Fortunoff Video Archive to see if modern automatic speech recognition could handle the complex realities of oral history. The short answer is yes, but the errors the model makes reveal a lot about how AI handles historical speech, trauma, and heritage languages. We are presenting our findings in Mallorca, Spain in May 2026 at the second gathering of the Holocaust Testimonies as a Language Resource conference.
