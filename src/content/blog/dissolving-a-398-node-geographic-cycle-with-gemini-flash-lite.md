@@ -5,7 +5,7 @@ description: "How we found, visualized, and automatically fixed a massive circul
 author: "William Mattingly"
 tags: ["yale", "graph theory", "lux"]
 image: "/images/blog/scc0.jpg"
-draft: true
+draft: false
 ---
 
 ## The Problem
