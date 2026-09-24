@@ -8,6 +8,13 @@ image: "/images/blog/scc0.jpg"
 draft: false
 ---
 
+> **Cleaning the LUX places graph** — a series:
+> - **Phase 1: Dissolving a 398-node geographic cycle** *(you are here)*
+> - Phase 2: [Merging duplicate places](/blog/cleaning-the-lux-places-graph-phase-2-merging-duplicates)
+> - Phase 3: [Untangling bad nesting](/blog/cleaning-the-lux-places-graph-phase-3-untangling-bad-nesting)
+> - Phase 4: [When places overlap instead of nest](/blog/cleaning-the-lux-places-graph-phase-4-overlap)
+> - Companion: [Finding over-merged places with authority divergence](/blog/finding-over-merged-places-in-lux-with-authority-divergence)
+
 ## The Problem
 
 [LUX](https://lux.collections.yale.edu/) is Yale's cultural heritage platform. It aggregates millions of objects and places into a massive database. Each place has a `part_of` array pointing to its geographic parents: a town links to a county, a county to a state, and so on.
