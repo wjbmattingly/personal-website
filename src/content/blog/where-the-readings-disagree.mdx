@@ -1,0 +1,237 @@
+---
+title: "Where the Readings Disagree: Finding HTR Errors by Asking a Model Five Times"
+pubDate: 2026-09-24
+description: "A small local app that runs a handwritten text recognition model several times over the same manuscript page and uses the disagreement between runs to show, word by word and letter by letter, where the errors are likely to be. Tested on Caroline minuscule, and on Old English, a language the model never saw."
+author: "William Mattingly"
+tags: ["htr", "manuscripts", "vision-language models", "qwen", "digital humanities"]
+image: "/images/blog/htr-divergence/app-overview-carolingian.jpg"
+imageAlt: "The HTR Confidence Tester: a late-tenth-century Gospel Lectionary page in the middle, and on the right the model's transcription painted in warm colors wherever five runs of the model disagreed."
+---
+
+import { url as asset } from "../../lib/url";
+
+export const Fig = ({ src, alt, w, h, children }) => (
+  <figure class="blog-figure">
+    <img src={asset(src)} alt={alt} width={w} height={h} loading="lazy" />
+    <figcaption>{children}</figcaption>
+  </figure>
+);
+
+A handwritten text recognition model gives you one answer. It hands back a transcription of the page, every word printed with the same flat confidence, and leaves you to work out which of those words are wrong. For a scholar correcting machine output that is the expensive part: you either trust the whole page or you check the whole page.
+
+I wanted something in between. So I built a small app that asks the model the same question several times, compares the answers, and paints the places where they disagree. Where five readings of a word agree, the word is probably right. Where they scatter, a human should look. This post walks through how it works for someone who has never done this before, then puts it to two tests: a Latin page in Caroline minuscule, the kind of script the model was trained on, and two Old English pages, a language it has never seen.
+
+The app is called the **HTR Confidence Tester**, and the code is on [GitHub](https://github.com/wjbmattingly/htr-confidence-tester).
+
+## Some background, briefly
+
+**Handwritten text recognition (HTR)** is the task of turning an image of handwriting into text. For a long time it meant specialized systems that first cut a page into lines and then read each line. Today a common alternative is a **vision-language model**: a model that takes an image and a written instruction together and answers in text. You show it the page and say "transcribe this," and it does.
+
+The model I use here is [`comma-qwen-3.5-0.8b-full-33k`](https://huggingface.co/wjbmattingly/comma-qwen-3.5-0.8b-full-33k), a fine-tune of Qwen 3.5 at 0.8 billion parameters. That is small by current standards, small enough to run on a laptop. It was trained on about 33,000 pages of medieval manuscripts to produce **CATMuS** transcriptions. CATMuS is a set of transcription guidelines designed for making machine-learning training data. It is *graphemic*: you record the letters and signs actually written, abbreviations included, rather than an edited, expanded text. On held-out pages the model reaches a character error rate of about 12%, and most of its remaining errors are matters of convention (where to divide words, which variant letter to write) rather than outright misreadings.
+
+The model reads its instructions from a prompt file that ships with it: about 12,000 characters of CATMuS rules, including a table of the special characters it should use. That table will matter later.
+
+## The idea: ask five times
+
+Every time a language model writes a word, it is really choosing from a list of possible next pieces of text, each with a probability. You can make it always take the single most likely option, which is called *greedy* decoding. Or you can let it *sample*, picking randomly in proportion to those probabilities. A setting called **temperature** controls how adventurous the sampling is. Low temperature sticks close to the top choice; high temperature spreads out.
+
+With greedy decoding, five runs give you the same transcription five times. With sampling at a moderate temperature (the app defaults to 0.7) the runs agree wherever the model is confident, because the correct letter dominates. Where it is torn between two readings, different runs land on different sides. **The disagreement is the signal.** You do not need to open up the model or trust its internal probabilities. You only need to read what it wrote.
+
+Turning five transcriptions into a word-by-word score takes four steps, animated below with a real line from the first test page:
+
+<figure class="blog-figure">
+  <a href={asset("/images/blog/htr-divergence/how-it-works.svg")} title="Open the animation full size">
+    <img
+      src={asset("/images/blog/htr-divergence/how-it-works.svg")}
+      alt="Animated diagram. A line of Latin manuscript is read five times. Run 3 is picked as the reference because it is closest to the others. The other runs are aligned against it and their differences are marked. Finally each word gets an agreement score: Dñe. 20%, perimus: 40%, cis 80%, every other word 100%."
+      width="1200"
+      height="760"
+      loading="lazy"
+    />
+  </a>
+  <figcaption>The four steps on line 3 of the Gospel Lectionary page. The five run readings are real model output.</figcaption>
+</figure>
+
+1. **Read the page N times** with sampling on. Five is the default.
+2. **Choose a reference.** The app compares every run with every other and picks the *medoid*: the run with the smallest total difference from all the others. It is the most typical reading, the one the others cluster around. It is not guaranteed to be the correct one.
+3. **Align every other run to the reference, character by character.** This is the same kind of alignment behind a "diff" between two versions of a document. It lines up matching stretches of text and marks where one run substituted, dropped, or added characters.
+4. **Count agreement.** A word's score is the fraction of runs that wrote exactly that word at that spot. Each character gets its own score too. Words below 50% are flagged as likely errors.
+
+## What the app looks like
+
+The app runs locally in a browser. On the left you choose a page (five medieval pages come preloaded, or you can upload your own), the number of runs, and the temperature. The middle column shows the page image. The right column fills in as the model works, streaming the text of the pass it is currently writing.
+
+<Fig src="/images/blog/htr-divergence/app-live-progress.jpg" alt="The app mid-run: the progress panel shows pass 1 of 5 with the transcription appearing line by line." w="2400" h="1500">
+  While the model works, you watch each pass being written. On an Apple M4 Max a pass over a full page takes about 7 to 13 seconds.
+</Fig>
+
+When all passes are done, the transcription is repainted as a heatmap. Unanimous words stay plain. Words the runs disagreed on turn pale yellow, then amber, then red as agreement falls. An underline marks spots where some runs *inserted* text the reference lacks. Clicking any word opens a popover listing every reading the runs gave for that spot, with counts. A **character view** colors individual letters instead of whole words, and an **agreement matrix** compares each run against every other, which makes it obvious when one run has gone off the rails by skipping or repeating text.
+
+A practical note if you are on a Mac. Qwen 3.5 is a *hybrid* architecture: many of its layers are a newer kind of "linear attention" whose fast implementations only exist for NVIDIA GPUs. On a Mac the library falls back to a slow reference version of those layers. On the CPU that fallback is unusably slow, at minutes for a handful of words. On the Mac's GPU, through Apple's Metal backend, it takes seconds per page, so the app picks Metal automatically.
+
+## Test 1: Caroline minuscule
+
+The first page is fol. 13 of a Gospel Lectionary made in the late tenth century (Getty Museum, Ms. 16). A lectionary arranges the Gospel readings in the order of the church year. This page ends one reading, from Matthew 8, the calming of the storm. It then starts the reading for the Feast of the Purification, from Luke 2, announced by a rubric in orange capitals and opened by a large gold initial *P*. The body text is Caroline minuscule, the clear, rounded book hand of the Carolingian reforms, and exactly the kind of script this model has seen thousands of times.
+
+The results bear that out. Over five runs, **mean word agreement was 89%**, and 71 of the 96 words were unanimous. Every pair of runs was between 94% and 97% identical at the character level. Only 11 words fell below 50% agreement. The interesting part is where those 11 words sit, because they are not random.
+
+<Fig src="/images/blog/htr-divergence/carolingian-word-view.jpg" alt="The full consensus transcription of the Getty page, word view. Most words are unhighlighted; color concentrates on abbreviations, punctuation, and the orange rubric lines near the middle." w="1368" h="1432">
+  The word view. Body text is mostly plain; color clusters on abbreviations, punctuation, and the display lines of the rubric and initial.
+</Fig>
+
+**Abbreviations.** The disciples cry *Domine, salva nos*, "Lord, save us." The scribe wrote *Domine* as a *nomen sacrum*, the abbreviation *Dne* with a bar over the *n*. CATMuS wants that recorded as written, and the model knows it should mark the abbreviation somehow. It just cannot decide how. Five runs gave five different readings:
+
+<Fig src="/images/blog/htr-divergence/carolingian-popover-domine.jpg" alt="Popover on the word Dñe. showing 20% agreement: Dñe., Dne., Dnẽ, Dñc., and Dñe each written by one run." w="1424" h="668">
+  One abbreviated word, five readings: tilde on the *n*, tilde on the *e*, no mark at all, an *e* misread as *c*, and a missing punctus.
+</Fig>
+
+**Punctuation.** Medieval punctuation does not map neatly onto modern marks, and the *punctus* signs on this page came out as a period in some runs and a colon in others (*uero.* against *uero*, *perimus:* against *perimus.*). These are small disagreements, but they are exactly the kind a human corrector would want to check against the image.
+
+**Display script.** The biggest concentration of red is the rubric, three lines of orange capitals that announce the reading: *In purificatione sanctae Mariae, sequentia sancti evangelii secundum Lucam*, heavily abbreviated. Display capitals are rarer in training data than body text, and it shows.
+
+<Fig src="/images/blog/htr-divergence/ms-carolingian-rubric.jpg" alt="Detail of the manuscript: three lines of widely spaced orange capitals, then IN ILLO TEMP and POSTQUAM in display capitals beside a large gold and silver interlace initial P." w="1160" h="560">
+  The rubric, *In illo tempore*, and the gold initial *P* of *Postquam*. Getty Museum, Ms. 16, fol. 13 (detail).
+</Fig>
+
+<Fig src="/images/blog/htr-divergence/carolingian-popover-rubric.jpg" alt="Popover on the rubric word TSCAT showing 40% agreement: TSCAT twice, TSCAI twice, TPSCAE once." w="1424" h="616">
+  In the rubric the runs split two, two, and one. Nearby, *MARIAE* came out as *MARIAI* and *SEQ* as *SEO*.
+</Fig>
+
+The rubric also produced the most unusual error on the page. Two runs spelled *PURIFICA* with a **Greek capital alpha** in place of the Latin *A*. On screen the two letters look identical, and a human proofreader would never catch it. The character comparison catches it immediately, because they are different characters. Two runs dropped the third rubric line (*EV SEC LVCAM*) entirely, and the others read *LVCAM* as *INCAM*. One run wrote *In illo tempore*, then went back and wrote part of the rubric a second time. That is why the runs cannot even agree on how many lines the page has: 21, 19, 18, 17, and 19.
+
+The large gold initial was also a problem. CATMuS asks for an oversized initial to be transcribed as its own line. No run transcribed the *P* at all. The display capitals after it came out as *OSTQUAM*, as *OST QU AM*, or not at all.
+
+**Word division.** *Porrohomines* or *Porro homines*? *impletisunt* or *impleti sunt*? The scribe's spacing is ambiguous, and so are the runs. This matches the model card's own finding that most residual errors are conventions of word division rather than misread letters.
+
+The **character view** makes the same pattern visible at a finer grain, and it shows which letter inside a word the runs were fighting over:
+
+<Fig src="/images/blog/htr-divergence/carolingian-char-view.jpg" alt="Character view of the Getty page: most letters are plain, with individual letters highlighted inside abbreviations, punctuation marks, and the rubric capitals." w="1368" h="1432">
+  Character view: agreement per letter. In *Dñe.* it is the mark and the final letter that waver, not the *D*.
+</Fig>
+
+### What divergence cannot see
+
+Here is the most important caveat, and it appears on this very page. In Matthew 8:25 the disciples *suscitaverunt eum*, "woke him." All five runs wrote *suscitauerunt **cum***. In the next verse, *dicit **eis***, "he says to them," four of five runs wrote ***cis***.
+
+<Fig src="/images/blog/htr-divergence/ms-carolingian-eum.jpg" alt="Two lines of the manuscript: 'cesserunt. & suscitauerunt eum dicentes' and 'Dne. salua nos. perimus. Et dicit eis Quid'. The e of eum and eis has a very small, closed eye." w="1120" h="150">
+  The scribe's *e* has a tiny, closed eye that looks almost exactly like a *c*.
+</Fig>
+
+<Fig src="/images/blog/htr-divergence/carolingian-popover-cis.jpg" alt="Popover on cis: 80% agree, cis four times and eis once." w="1424" h="516">
+  Four runs say *cis*; the one dissenting run is the correct one. On the previous line, *cum* for *eum* is unanimous and not highlighted at all.
+</Fig>
+
+This scribe's *e* has such a small eye that it really does look like *c*. The model makes the same wrong call on every run, so the runs agree, and agreement is all this method measures. **Agreement is not accuracy.** Divergence finds the places where the model is *unsure*. It cannot find the places where the model is *sure and wrong*. On familiar material those are rare. As the next test shows, they are not rare everywhere.
+
+## Test 2: Old English, a language the model never saw
+
+For the second test I gave the model two pages it was never trained on: the first page of the **Peterborough Chronicle** (Bodleian Library, MS Laud Misc. 636, fol. 1r), and the opening of **Beowulf** (British Library, Cotton MS Vitellius A XV, fol. 132r). Both are written in Old English. Their scripts look broadly familiar to a Latin-trained eye, but they use letters that Latin does not have:
+
+- **þ** (thorn) and **ð** (eth), both for the sound *th*;
+- **ƿ** (wynn), for *w*;
+- **æ** (ash), a vowel between *a* and *e*;
+- the insular forms of *g* (**ᵹ**), *f*, *r*, and *s*, whose tall strokes look quite different from their Caroline cousins;
+- and **ꝥ**, a thorn with a stroke through its ascender, an abbreviation for *þæt* ("that").
+
+<Fig src="/images/blog/htr-divergence/ms-peterborough-top.jpg" alt="The opening lines of the Peterborough Chronicle in dark brown insular minuscule, with thorns, wynns, and Tironian et signs visible." w="1520" h="740">
+  The opening of the Peterborough Chronicle: *Brittene igland is ehta hund mila lang…* Bodleian Library, MS Laud Misc. 636, fol. 1r (detail, via Wikimedia Commons).
+</Fig>
+
+The headline result is stark. Across all ten runs on the two pages, **the model never once wrote þ, ð, ƿ, or æ**. It is not hard to see why. The character table in its prompt lists Latin abbreviation signs and nothing from Old English. One of its rules says that "insular or obsolete letterforms" must be reduced to their modern Latin equivalents, which is right for insular *g* but wrong for thorn, which is a separate letter, not a variant shape. Another rule says ligatures must be split into their letters, so *æ* becomes *ae*. The model does exactly what it was taught to do with Latin. It maps every unfamiliar letter onto the nearest Latin shape it knows.
+
+The scores reflect this. On the Peterborough page mean word agreement fell to **68%**, with 88 of 262 words flagged. On Beowulf it fell to **57%**, with 62 of 124 flagged. But the scores are not the interesting part. The interesting part is *which* errors the divergence signal can see.
+
+<Fig src="/images/blog/htr-divergence/app-overview-peterborough.jpg" alt="The app with the Peterborough Chronicle loaded: the transcription on the right is heavily colored, with most lines containing several amber and red words." w="2400" h="1500">
+  Five runs over the Peterborough Chronicle. Far more color than on the Latin page, but not in every place it should be.
+</Fig>
+
+<figure class="blog-figure">
+  <a href={asset("/images/blog/htr-divergence/old-english-letters.svg")} title="Open the animation full size">
+    <img
+      src={asset("/images/blog/htr-divergence/old-english-letters.svg")}
+      alt="Animated table of Old English letters and what the model wrote. Thorn became usually p (mostly hidden). Wynn always became p (hidden). Eth became d or d with the Latin -er stroke (hidden). Ash became ae, ce, or & (caught). Barred thorn became ẜ, ꝓ, ꝑ, p, or y (caught). Insular g became g, z, or b (caught). Insular f, r, s traded places (caught)."
+      width="1200"
+      height="860"
+      loading="lazy"
+    />
+  </a>
+  <figcaption>Every Old English letter, what the runs wrote for it, and whether the disagreement between runs gives the error away.</figcaption>
+</figure>
+
+### Hidden: letters the model is sure about and wrong about
+
+**Wynn became *p*, every time.** Wynn really does look like a *p* with a pointed bowl, and the model reads it that way with complete conviction. *We eow magon* ("we can [advise] you") comes out as *pe cop magon*, and *wunian* ("to dwell") as *punian*. The runs agree, so nothing is highlighted.
+
+**Thorn usually became *p* as well.** *Fif geþeode* ("five peoples") appears as *rif ge **peode***, and the popover shows a unanimous 5/5:
+
+<Fig src="/images/blog/htr-divergence/oe-popover-peode.jpg" alt="Popover on peode.: 100% agree, 5 of 5 runs wrote peode." w="1424" h="476">
+  *þeode* read as *peode* by all five runs. To the divergence signal this word looks perfectly safe.
+</Fig>
+
+**Eth became *d*, often with a Latin abbreviation mark.** Eth is a *d* with a stroke through its ascender, and the model reads that stroke as the Latin *-er* abbreviation sign. *Forðan* ("because") comes out as *fond̾an* and *willað* ("you wish") as *pillad̾*. That is a strangely specific wrong answer, but it is a consistent one, so again it is barely flagged.
+
+These errors are the Old English version of *cum* for *eum*: systematic, confident, and invisible to a method that measures only disagreement.
+
+### Caught: letters the model has no good answer for
+
+Other letters broke the model's confidence, and that is where the tool earns its keep.
+
+**The barred thorn has no Latin twin.** Latin manuscripts have many letters with a stroke through them, all abbreviations, but none of them is *ꝥ*. So each run grabs a different one: *ẜ* (a Latin abbreviation built on long *s*), *ꝓ* (*pro*), *ꝑ* (*per*), plain *p*, even *y*. On the first three barred thorns of the page agreement drops to 20–40%, and all three are flagged. Further down, the runs happened to settle on *ẜ* and agreed on it (5/5 and 4/5), a reminder that a consistent wrong answer can emerge even for a letter the model has no real answer for.
+
+<Fig src="/images/blog/htr-divergence/oe-popover-barred-thorn.jpg" alt="Popover on a barred thorn transcribed as ꝓ: 20% agree; ẜ three times, ꝓ once, y once." w="1424" h="566">
+  *Þa gelamp hit ꝥ Pyhtas…* ("then it happened that the Picts…"). The barred thorn scatters across three unrelated Latin abbreviation signs.
+</Fig>
+
+**Ash is split, and the split wobbles.** Following its ligature rule, the model turns *æ* into two letters. But it cannot decide which two. *Ærost* ("first") came out as *cerost*, *aerost*, *&nost*, and *ceiost*:
+
+<Fig src="/images/blog/htr-divergence/oe-popover-aerost.jpg" alt="Popover on aerost.: 20% agree; cerost. twice, aerost., &nost., and ceiost. once each." w="1424" h="618">
+  Four readings of *ærost*. One run even turns the ash into an ampersand.
+</Fig>
+
+**Thorn in an unfamiliar word scatters.** When thorn begins a word the model has never seen, the *p* reading breaks down. *On þis* came out as *on his* in three runs and *on pis* in two. In Beowulf, *þrym* ("glory") split three ways:
+
+<Fig src="/images/blog/htr-divergence/beowulf-popover-thrym.jpg" alt="Popover on hrym: 40% agree; hrym twice, prym twice, byym once." w="1424" h="566">
+  *Þrym* in the third line of Beowulf: *h*, *p*, or *b* for the thorn, depending on the run.
+</Fig>
+
+<Fig src="/images/blog/htr-divergence/ms-beowulf-opening.jpg" alt="The opening of Beowulf: HWÆT WE GARDE in large capitals after a tall initial, then lines of insular minuscule." w="860" h="360">
+  *Hwæt we Gardena in geardagum…* British Library, Cotton MS Vitellius A XV, fol. 132r (detail, via Wikimedia Commons). The runs dropped the tall initial *H* entirely and read the rest of the first line as *PAET PE GARD*.
+</Fig>
+
+**Insular *g*, *f*, *r*, and *s* trade places.** Insular *g* came out as *g* in some Beowulf runs and as *z* in others (*zeong* for *geong*, *scefinz* for *scefing*). On *gomban* ("tribute") the runs split four ways:
+
+<Fig src="/images/blog/htr-divergence/beowulf-popover-gomban.jpg" alt="Popover on zomban: 20% agree; bombard twice, zomban, ombar, and bomban once each." w="1424" h="618">
+  *Gomban* as *bombard*, *zomban*, *ombar*, or *bomban*. Two runs "corrected" it to a real, and entirely wrong, word.
+</Fig>
+
+In the Peterborough text the tall insular *f*, *r*, and *s* traded places constantly. *Of* came out as *of*, *or*, *fr*, and *sr*; *fif* was read as *rif*; *gesaton* as *satan* and *ratan*. Averaged over the whole page, *c*, *r*, and *s* were the common letters the runs agreed on least (75%, 82%, and 84%, against 95% or more for *a*, *e*, *d*, and *o*). The *c* comes from the same *e*-or-*c* confusion as on the Latin page. The character view shows the problem letter by letter:
+
+<Fig src="/images/blog/htr-divergence/oe-char-view.jpg" alt="Character view of the Peterborough transcription: individual letters highlighted throughout, especially r, s, and the barred thorns." w="1368" h="1122">
+  Character-level agreement on the Peterborough Chronicle. The colored letters are overwhelmingly insular *r*, *s*, *f*, ash, and barred thorn.
+</Fig>
+
+One Old English feature mostly came through: the **Tironian *et*** (⁊), the 7-shaped sign for "and." Anglo-Saxon scribes shared it with Latin ones, so the model knew it. Where it stands alone, all five runs wrote ⁊ nearly every time. Where it touches the next word at the start of a line, it was read as a capital *I*, sometimes unanimously (*Itpa* for *⁊ twa*, "and two").
+
+## What this is good for
+
+Put the two tests side by side and a clear picture of the method emerges.
+
+**Divergence is a triage tool.** On material close to the model's training, it is a good guide to where the errors are. On the Getty page, a corrector who checked only the highlighted words would have caught the abbreviation and punctuation problems, the whole rubric, the lost initial, and the Greek alpha, while skipping three-quarters of the page. That is the practical payoff: correction effort goes where it is needed.
+
+**It measures uncertainty, not correctness.** A model can be consistently wrong, and when it is, every run agrees. That happened occasionally on familiar script (*cum* for *eum*) and constantly on unfamiliar script (*p* for thorn and wynn, *d* for eth). Low agreement is a reliable warning. High agreement is only reassuring when you have reason to trust the model on that kind of material.
+
+**Out of domain, the pattern of disagreement is itself informative.** On the Old English pages the flagged letters were a map of what the model lacks: no ash, no barred thorn, no insular letterforms. The letters it silently mapped to *p* and *d* point to exactly what a fine-tune on Old English would need to teach: the letters themselves, and a character table in the prompt that includes them.
+
+A few practical notes if you try it. Five runs gives agreement in steps of 20%, so a word is 100%, 80%, 60%, and so on. More runs give finer steps at proportionally more cost. The temperature matters: too low and every run is identical, so nothing is flagged; too high and everything diverges, so everything is flagged. The default of 0.7 has been a reasonable middle. And the reference shown is the most *typical* run, not a corrected one. Where the majority reading differs from the reference, the popover shows it.
+
+## Trying it yourself
+
+The app is a single Python project managed with [uv](https://docs.astral.sh/uv/). After cloning the repository, one command installs everything, downloads the model on first run, and starts the interface at `http://127.0.0.1:8765`:
+
+```bash
+uv run app.py
+```
+
+It works on a Mac with Apple Silicon or on a machine with an NVIDIA GPU (it picks the right one automatically), and it runs entirely locally. No page image leaves your computer. You can point it at a different fine-tune with the `HTR_MODEL_REPO` environment variable, upload your own pages, and download the full analysis for any page as JSON.
+
+The code is on [GitHub](https://github.com/wjbmattingly/htr-confidence-tester), and the model is on [Hugging Face](https://huggingface.co/wjbmattingly/comma-qwen-3.5-0.8b-full-33k).
