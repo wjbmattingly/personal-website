@@ -24,7 +24,7 @@ A herbarium sheet at Naturalis, the Dutch natural history museum, holds a cuttin
 
 Wikidata knows dozens of people called Boom. A cyclist, a water polo player, a Swedish composer, a rapper, and two botanists. One of the botanists, Boudewijn Karel Boom (1903–1980), fits this record well: a Dutchman, alive in 1934, collecting a cultivated shrub in Boskoop, a nursery town in South Holland. Linking the record to him turns a string of letters into a person, with a life, other works, and identifiers in other catalogues.
 
-Now do that seven million times. The Europeana export I worked with contains **7,226,233 people** named in cultural heritage records who have no identifier yet: collectors, authors, editors, printers, photographers, sitters. Nobody is going to link them by hand, and asking a large commercial model about each one costs money and time at that scale. This post is about how I taught a small model to make the decision instead, how I made it cautious, and what happened when it ran over the whole export on Yale's computing cluster, with no calls to any outside service.
+Now do that seven million times. The Europeana export our team at Yale worked with contains **7,226,233 people** named in cultural heritage records who have no identifier yet: collectors, authors, editors, printers, photographers, sitters. Nobody is going to link them by hand, and asking a large commercial model about each one costs money and time at that scale. This post is about how we taught a small model to make the decision instead, how we made it cautious, and what happened when it ran over the whole export on Yale's computing cluster, with no calls to any outside service.
 
 ## Some background, briefly
 
@@ -38,9 +38,9 @@ The **none** option matters more than it seems. Many of the people in a catalogu
 
 The decision step can be written as a multiple-choice question: *here is a record; which of these candidates is the person it names, or is it none of them?* There is a family of small models built for exactly that kind of question. They don't write answers, they score options, and they give a probability for each.
 
-I used [**GLiNER2.5-Decide**](https://huggingface.co/fastino/GLiNER2.5-Decide) from Fastino. It has 340 million parameters, which is small enough to run on a laptop, and it reads a text plus a list of labelled options and scores every option at once. Out of the box it is a general-purpose classifier. It is not a reconciliation expert, so it has to be taught.
+We used [**GLiNER2.5-Decide**](https://huggingface.co/fastino/GLiNER2.5-Decide) from Fastino. It has 340 million parameters, which is small enough to run on a laptop, and it reads a text plus a list of labelled options and scores every option at once. Out of the box it is a general-purpose classifier. It is not a reconciliation expert, so it has to be taught.
 
-To teach it, I needed labelled examples: records where the right answer is already known. Labelling thousands of them by hand was not realistic, so I used a much larger model to help label the data. I showed it each record and its candidates, asked it to choose, and kept its answer and a one-line reason. Those answers became the training data for the small model. The larger model is too slow and expensive to run seven million times, but it only had to label a few thousand examples. The small model, once trained, can run as many times as you like.
+To teach it, we needed labelled examples: records where the right answer is already known. Labelling thousands of them by hand was not realistic, so we used a much larger model to help label the data. We showed it each record and its candidates, asked it to choose, and kept its answer and a one-line reason. Those answers became the training data for the small model. The larger model is too slow and expensive to run seven million times, but it only had to label a few thousand examples. The small model, once trained, can run as many times as you like.
 
 Here is the whole decision for Boom BK, from record to link:
 
@@ -52,7 +52,7 @@ Two things in that diagram need explaining. Why are there *three* models? And wh
 
 ## What the model reads
 
-A catalogue record about a person is not prose. It is a set of fields, and for this export each person comes with the records they are attached to. For each person I built a short text out of the parts that help identify them: the name exactly as catalogued, any dates or roles written into the name, and up to five of their records, each with title, type, the person's role, date, language, subjects, and collection. Duplicate records are shown once, and the whole text is capped at 1,800 characters. For a Polish newspaper editor it looks like this:
+A catalogue record about a person is not prose. It is a set of fields, and for this export each person comes with the records they are attached to. For each person we built a short text out of the parts that help identify them: the name exactly as catalogued, any dates or roles written into the name, and up to five of their records, each with title, type, the person's role, date, language, subjects, and collection. Duplicate records are shown once, and the whole text is capped at 1,800 characters. For a Polish newspaper editor it looks like this:
 
 ```text
 Name as recorded: Dmuszewski, Ludwik Adam (1777-1847). Wydaw.
@@ -73,15 +73,15 @@ Getting candidates at all takes some care. Catalogues write names in many ways: 
 
 ## Labels, and a lesson about silence
 
-I started with a small model already trained on a related task: reconciling terms in museum catalogue records (object types, materials, people, places) against Wikidata and the Getty vocabularies. On that task, trained on 24,318 examples, the small model matched the larger model's labels on 92.6% of 1,224 held-out decisions. That is level with a 0.8-billion-parameter generative model trained on the same data. It is [published on Hugging Face](https://huggingface.co/yale-cultural-heritage/GLiNER2.5-Decide-linkedart-recon).
+We started with a small model already trained on a related task: reconciling terms in museum catalogue records (object types, materials, people, places) against Wikidata and the Getty vocabularies. On that task, trained on 24,318 examples, the small model matched the larger model's labels on 92.6% of 1,224 held-out decisions. That is level with a 0.8-billion-parameter generative model trained on the same data. It is [published on Hugging Face](https://huggingface.co/yale-cultural-heritage/GLiNER2.5-Decide-linkedart-recon).
 
-On Europeana persons that model agreed with the larger model's labels only about 77–81% of the time. Museum terms are not person records, so it needed Europeana examples. I sampled 2,000 persons at random from the 7.2 million, gathered their candidates, and had the larger model label each one.
+On Europeana persons that model agreed with the larger model's labels only about 77–81% of the time. Museum terms are not person records, so it needed Europeana examples. We sampled 2,000 persons at random from the 7.2 million, gathered their candidates, and had the larger model label each one.
 
-That first labelling run taught me the most important practical lesson of the project. I ran the candidate searches in parallel, the Wikidata API started refusing requests for going too fast, and **each refused search came back looking exactly like a search that found nothing**. A person with no candidates gets the answer "none." So hundreds of people were silently labelled "none" for the wrong reason, and that would have taught the small model to say "none" whenever it was unsure. Nothing crashed, and the numbers looked plausible. I only caught it by checking how many lookups had failed. The fix was dull and essential: slow the searches down, cache them, and record a failed search as a failure, never as an answer.
+That first labelling run taught us the most important practical lesson of the project. We ran the candidate searches in parallel, the Wikidata API started refusing requests for going too fast, and **each refused search came back looking exactly like a search that found nothing**. A person with no candidates gets the answer "none." So hundreds of people were silently labelled "none" for the wrong reason, and that would have taught the small model to say "none" whenever it was unsure. Nothing crashed, and the numbers looked plausible. We only caught it by checking how many lookups had failed. The fix was dull and essential: slow the searches down, cache them, and record a failed search as a failure, never as an answer.
 
 ## How much data, and how many runs?
 
-With clean labels, I split the persons into a training set and a **held-out test set**: people the small model never sees in training and is scored on afterwards. Then I asked the obvious question, which is how much labelled data is needed. I trained on 310, 620, 930, and 1,239 persons and scored each model on the same held-out people.
+With clean labels, we split the persons into a training set and a **held-out test set**: people the small model never sees in training and is scored on afterwards. Then we asked the obvious question, which is how much labelled data is needed. We trained on 310, 620, 930, and 1,239 persons and scored each model on the same held-out people.
 
 <Anim src="/images/blog/europeana-reconciliation/learning.svg" alt="Animated chart of agreement with labels from a larger model on 145 held-out persons. The model trained only on museum terms agrees 77%. Training on 310, 620, 930 and 1,239 Europeana persons gives 85.5%, 91.0%, 90.3% and 92.4%. A second run on the same 1,239 persons gives 86.9%. Trained on 3,092 persons, three runs agree with the labels 91.7%, 91.7% and 93.1%.">
   Agreement with the larger model's labels on the same 145 held-out persons, as the training set grows.
@@ -89,9 +89,9 @@ With clean labels, I split the persons into a training set and a **held-out test
 
 Most of the gain comes from the first few hundred examples. After about 600, more data barely moves the score.
 
-Then came the surprise. Training a neural network involves randomness: the order the examples are shown in, the starting values of some weights. A number called the **seed** fixes that randomness so a run can be repeated. I retrained on exactly the same 1,239 persons with a different seed, and agreement fell from 92.4% to 86.9%. Same data, same recipe, 5.5 points apart. Almost all of the difference was in the "none" decisions: one run declined readily, the other linked readily.
+Then came the surprise. Training a neural network involves randomness: the order the examples are shown in, the starting values of some weights. A number called the **seed** fixes that randomness so a run can be repeated. We retrained on exactly the same 1,239 persons with a different seed, and agreement fell from 92.4% to 86.9%. Same data, same recipe, 5.5 points apart. Almost all of the difference was in the "none" decisions: one run declined readily, the other linked readily.
 
-That changed the plan. I labelled 2,000 more persons, this time keeping only people for whom the search found at least one candidate, since there is nothing to decide for the rest. That gave 3,092 training persons and 364 held-out ones. I also stopped trusting single runs. I trained **three copies** of the model with three different seeds and **averaged their probabilities**. On the 364 held-out persons:
+That changed the plan. We labelled 2,000 more persons, this time keeping only people for whom the search found at least one candidate, since there is nothing to decide for the rest. That gave 3,092 training persons and 364 held-out ones. We also stopped trusting single runs. We trained **three copies** of the model with three different seeds and **averaged their probabilities**. On the 364 held-out persons:
 
 - the museum-terms model agreed with the labels **81.0%** of the time;
 - the three Europeana copies agreed **91.8%**, **92.3%**, and **93.4%**;
@@ -101,15 +101,15 @@ That is why the diagram above has three models. The extra data mostly bought *st
 
 ### Where the small model still disagrees with the labels
 
-Fourteen of the 364 test persons are ones that all three copies get "wrong." Reading them is instructive, because about half are not really the small model's fault. In those cases the larger model used knowledge that is not in the record. A specimen collected by *Charles Wright* gives only map coordinates; the larger model knows the coordinates are in Cuba and that the botanist Charles Wright collected there in the 1850s. An 1857 catalogue of enamels at the Louvre credits *Laborde, M.De*; the larger model knows Léon de Laborde wrote it. The small model only knows what it is shown. A few others are labels I would dispute. Once agreement passes about 95%, you are partly measuring the labelling model's own mistakes.
+Fourteen of the 364 test persons are ones that all three copies get "wrong." Reading them is instructive, because about half are not really the small model's fault. In those cases the larger model used knowledge that is not in the record. A specimen collected by *Charles Wright* gives only map coordinates; the larger model knows the coordinates are in Cuba and that the botanist Charles Wright collected there in the 1850s. An 1857 catalogue of enamels at the Louvre credits *Laborde, M.De*; the larger model knows Léon de Laborde wrote it. The small model only knows what it is shown. A few others are labels we would dispute. Once agreement passes about 95%, you are partly measuring the labelling model's own mistakes.
 
 **Agreement with the labels is not accuracy.** Every number in this post compares the small model with the larger model's labels, not with a human expert. Those labels are good, but they are not ground truth.
 
 ## Erring on the side of "none"
 
-The averaged model still linked about 9% of the held-out people for whom the labels said "none." For a catalogue, I wanted to push that down even if it cost some links. There are two ways to do that. You can try to *train* caution into the model, or you can *set* it afterwards with a decision rule. I tried both, on a fresh split so the rules could be tuned on one set of people and judged on another.
+The averaged model still linked about 9% of the held-out people for whom the labels said "none." For a catalogue, we wanted to push that down even if it cost some links. There are two ways to do that. You can try to *train* caution into the model, or you can *set* it afterwards with a decision rule. We tried both, on a fresh split so the rules could be tuned on one set of people and judged on another.
 
-Training it in did not help. I added examples where I had removed the correct candidate, so only namesakes remained and the right answer became "none." I also tried showing every "none" example twice. Both made the model more cautious, but only in the way that simply raising a threshold would have. Neither found a better trade-off.
+Training it in did not help. We added examples where we had removed the correct candidate, so only namesakes remained and the right answer became "none." We also tried showing every "none" example twice. Both made the model more cautious, but only in the way that simply raising a threshold would have. Neither found a better trade-off.
 
 Setting it afterwards worked well:
 
@@ -117,27 +117,27 @@ Setting it afterwards worked well:
   For this comparison the models were retrained with part of the training data set aside for tuning the rules, so the starting point differs a little from the numbers above. Each rule was tuned on those set-aside people and scored here, on people it had never seen.
 </Anim>
 
-The simplest rule is the one I use: **link only if all three copies pick the same person**. It halves the false links for a few points of recall, and there is no threshold to tune. The links it gives up are mostly close calls, which are exactly the ones a person should look at anyway. That is also why Boom BK's 0.73 is fine: the average is pulled down by a second botanist named Boom, but all three copies chose Boudewijn Karel.
+The simplest rule is the one we use: **link only if all three copies pick the same person**. It halves the false links for a few points of recall, and there is no threshold to tune. The links it gives up are mostly close calls, which are exactly the ones a person should look at anyway. That is also why Boom BK's 0.73 is fine: the average is pulled down by a second botanist named Boom, but all three copies chose Boudewijn Karel.
 
 ## A second opinion: Jev
 
-I also compared the small model with [**Jev**](https://docs.typesafe.ai/introduction), a commercial decision model from TypeSafe that answers the same kind of multiple-choice question through an API, with no training on my data. On the 364 held-out persons Jev agreed with the labels 93.4% of the time, essentially tied with the averaged small model at 93.7%. Running all 4,000 labelled persons through Jev took two minutes and about 3.5 million tokens, roughly fifteen cents.
+We also compared the small model with [**Jev**](https://docs.typesafe.ai/introduction), a commercial decision model from TypeSafe that answers the same kind of multiple-choice question through an API, with no training on our data. On the 364 held-out persons Jev agreed with the labels 93.4% of the time, essentially tied with the averaged small model at 93.7%. Running all 4,000 labelled persons through Jev took two minutes and about 3.5 million tokens, roughly fifteen cents.
 
 The interesting part is that the two models make *different* mistakes. In one case Jev declined a medal made in 1929 that portrays a priest who died in 1875; its documentation warns that it reads dates literally, and here the record lists the priest as the medal's "maker." In another, the small model linked the author of a 1941 price list from a Maine gladiolus nursery to an actor and puppeteer of the same name, because he was the only candidate. When Jev and the small model agree, which is about nine times in ten, they match the labels 98–99% of the time. Requiring both to agree cut false links to 3.3%. Asking an unrelated model for a second opinion is a cheap and effective check.
 
-For the full run, though, I used neither Jev nor the larger model.
+For the full run, though, we used neither Jev nor the larger model.
 
 ## Seven million names, without an API
 
 The final run had one rule: **no calls to any outside service**. No large model, no Jev, and not even the Wikidata search API, which would have taken weeks at polite request rates for seven million people and would have tied the result to a service that changes daily. Everything ran on **Bouchet**, Yale's computing cluster.
 
-That meant building a local copy of Wikidata. Yale's existing local copy covers only items with an English Wikipedia article, and only 36% of the people in the labels are in it. So I downloaded Wikidata's full public dump (156 GB compressed, from 28 September 2026) and pulled out every one of its **13.7 million people**: their names and aliases in every language, descriptions, occupations, and dates. All of that went into a 2.2 GB searchable index that the search step queries instead of the website.
+That meant building a local copy of Wikidata. Yale's existing local copy covers only items with an English Wikipedia article, and only 36% of the people in the labels are in it. So we downloaded Wikidata's full public dump (156 GB compressed, from 28 September 2026) and pulled out every one of its **13.7 million people**: their names and aliases in every language, descriptions, occupations, and dates. All of that went into a 2.2 GB searchable index that the search step queries instead of the website.
 
-A local search is not the same as Wikidata's own search, so before running anything at scale I re-ran the 4,000 labelled persons through the local pipeline and compared. The local search found the labelled person 91% of the time. About a third of the misses were organizations catalogued as people (a political party, a photography studio, the city of Barcelona), which a people-only index cannot contain. Agreement with the labels on the held-out persons fell from 93.7% to 90.1%. With the all-three-agree rule, 98.3% of the links still matched the labels, and false links were 4.4%. I tried three variations of the search; each found more of the right people *and* more wrong ones in equal measure, so I kept the one with the fewest false links.
+A local search is not the same as Wikidata's own search, so before running anything at scale we re-ran the 4,000 labelled persons through the local pipeline and compared. The local search found the labelled person 91% of the time. About a third of the misses were organizations catalogued as people (a political party, a photography studio, the city of Barcelona), which a people-only index cannot contain. Agreement with the labels on the held-out persons fell from 93.7% to 90.1%. With the all-three-agree rule, 98.3% of the links still matched the labels, and false links were 4.4%. We tried three variations of the search; each found more of the right people *and* more wrong ones in equal measure, so we kept the one with the fewest false links.
 
 Then the run itself. Searching all 7.2 million names took about half an hour. The decisions ran on **ten GPUs at once**, five NVIDIA RTX PRO 6000s and five RTX 5000s, each taking the next batch of names from a shared queue, so the faster cards simply did more of the work. Running the models in half precision (*bf16*) made them 2.4 times faster. On a test of 3,456 people it changed only four decisions, all coin tosses where the top two options were within 0.02 of each other. Scoring took about five hours.
 
-It crashed once. One Wikidata description contained the characters "(C)". My cleaning step turns parentheses into square brackets, because this model reserves parentheses, and "[C]" happens to be one of the model's own internal markers, so it refused the input. The fix was one line. This is the kind of bug you only meet at seven million.
+It crashed once. One Wikidata description contained the characters "(C)". Our cleaning step turns parentheses into square brackets, because this model reserves parentheses, and "[C]" happens to be one of the model's own internal markers, so it refused the input. The fix was one line. This is the kind of bug you only meet at seven million.
 
 <Anim src="/images/blog/europeana-reconciliation/full-run.svg" alt="Animated funnel. 7,226,233 persons in the export; 4,957,515 have at least one candidate in a local copy of Wikidata; 3,605,904 are linked; 3,277,078 links have all three models agreeing; those links point to 597,296 distinct Wikidata people. Built from a 156 GB Wikidata dump on Yale's Bouchet cluster with ten GPUs in about five hours of scoring and no API calls.">
   The whole run, from the export to distinct people.
@@ -150,13 +150,13 @@ The results:
 - **3,605,904** were linked, and **3,277,078** of those links have all three copies agreeing;
 - for the remaining 1.35 million, the models chose "none."
 
-The last number surprised me most. Those 3.6 million links point to only **597,296 different people**. The export treats every appearance of a name as a separate person, and some people appear an astonishing number of times. Ludwik Adam Dmuszewski, the actor and theatre director who published the Warsaw newspaper *Kurjer Warszawski*, is credited on **48,645** records, one per digitised issue, including issues from 1917, seventy years after his death. Its editor Bruno Kiciński appears on about 43,000 more. Boudewijn Karel Boom appears 24,183 times, once for each specimen record. Linking the names to Wikidata does more than identify people. It also gathers thousands of scattered records back into one person.
+The last number surprised us most. Those 3.6 million links point to only **597,296 different people**. The export treats every appearance of a name as a separate person, and some people appear an astonishing number of times. Ludwik Adam Dmuszewski, the actor and theatre director who published the Warsaw newspaper *Kurjer Warszawski*, is credited on **48,645** records, one per digitised issue, including issues from 1917, seventy years after his death. Its editor Bruno Kiciński appears on about 43,000 more. Boudewijn Karel Boom appears 24,183 times, once for each specimen record. Linking the names to Wikidata does more than identify people. It also gathers thousands of scattered records back into one person.
 
 ## What this is good for
 
 **Small models can do this job.** A 340-million-parameter model, trained on 3,092 examples labelled with the help of a larger model, agrees with those labels about as often as a commercial decision model does. It ran over seven million people on hardware a university already has, with no per-call cost and nothing leaving the cluster.
 
-**The "none" answer deserves as much design as the links.** Most of my effort went into making the model *decline* well: catching failed searches before they became training labels, averaging three runs, and demanding agreement. Every one of those choices traded a little recall for fewer false links, which is the right trade for a catalogue.
+**The "none" answer deserves as much design as the links.** Most of our effort went into making the model *decline* well: catching failed searches before they became training labels, averaging three runs, and demanding agreement. Every one of those choices traded a little recall for fewer false links, which is the right trade for a catalogue.
 
 **Some limits remain:**
 
@@ -165,4 +165,4 @@ The last number surprised me most. Those 3.6 million links point to only **597,2
 - *Wikidata is a snapshot.* People added after 28 September 2026 are not in it.
 - *Organizations catalogued as people* cannot be linked by a people-only search, and should probably be fixed upstream.
 
-The links from the all-three-agree rule are the ones I would load first. The links where the three copies split are the natural queue for human review. The Linked Art model that started all this is [on Hugging Face](https://huggingface.co/yale-cultural-heritage/GLiNER2.5-Decide-linkedart-recon); the Europeana version is not public yet.
+The links from the all-three-agree rule are the ones we would load first. The links where the three copies split are the natural queue for human review. The Linked Art model that started all this is [on Hugging Face](https://huggingface.co/yale-cultural-heritage/GLiNER2.5-Decide-linkedart-recon); the Europeana version is not public yet.
