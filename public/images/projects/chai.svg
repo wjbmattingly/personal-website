@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="75%">
+      <stop offset="0" stop-color="#0a4a8c"/>
+      <stop offset="1" stop-color="#00356B"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <g transform="translate(600 450) scale(1.12) translate(-600 -450)">
+
+  <!-- pipeline tree rising from the steam -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" stroke-linecap="round">
+    <path d="M600 300 C 600 250, 450 265, 450 215"/>
+    <path d="M600 300 C 600 250, 600 250, 600 200"/>
+    <path d="M600 300 C 600 250, 750 265, 750 215"/>
+    <path d="M450 215 C 450 165, 380 170, 380 120"/>
+    <path d="M450 215 C 450 165, 480 160, 480 110"/>
+    <path d="M600 200 C 600 150, 600 145, 600 95"/>
+    <path d="M750 215 C 750 165, 720 160, 720 110"/>
+    <path d="M750 215 C 750 165, 820 170, 820 120"/>
+  </g>
+  <!-- steam from the cup to the root node -->
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round">
+    <path d="M600 388 C 570 370, 630 345, 600 324" stroke-opacity="0.9"/>
+    <path d="M556 384 C 536 366, 576 350, 558 332" stroke-opacity="0.45"/>
+    <path d="M644 384 C 664 366, 624 350, 642 332" stroke-opacity="0.45"/>
+  </g>
+  <!-- nodes -->
+  <g stroke="#ffffff" stroke-width="4">
+    <circle cx="600" cy="300" r="24" fill="#ffffff"/>
+    <circle cx="450" cy="215" r="19" fill="#63AAFF"/>
+    <circle cx="600" cy="200" r="19" fill="#63AAFF"/>
+    <circle cx="750" cy="215" r="19" fill="#63AAFF"/>
+    <circle cx="380" cy="120" r="14" fill="#286DC0"/>
+    <circle cx="480" cy="110" r="14" fill="#286DC0"/>
+    <circle cx="600" cy="95"  r="14" fill="#286DC0"/>
+    <circle cx="720" cy="110" r="14" fill="#286DC0"/>
+    <circle cx="820" cy="120" r="14" fill="#286DC0"/>
+  </g>
+
+  <!-- saucer -->
+  <ellipse cx="600" cy="588" rx="225" ry="30" fill="#0b4078" stroke="#ffffff" stroke-width="9"/>
+  <!-- handle -->
+  <path d="M742 432 C 835 418, 835 528, 736 528" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+  <!-- cup body -->
+  <path d="M455 400 L745 400 C 745 482, 712 548, 648 562 L552 562 C 488 548, 455 482, 455 400 Z"
+        fill="#0b4078" stroke="#ffffff" stroke-width="9" stroke-linejoin="round"/>
+  <!-- rim and tea -->
+  <ellipse cx="600" cy="400" rx="145" ry="27" fill="#286DC0" stroke="#ffffff" stroke-width="9"/>
+  <ellipse cx="600" cy="402" rx="118" ry="17" fill="#63AAFF"/>
+
+  <!-- wordmark -->
+  <text x="600" y="748" text-anchor="middle" font-family="YaleNew, 'Yale New', Georgia, serif" font-size="168" fill="#ffffff">chai</text>
+  <text x="600" y="812" text-anchor="middle" font-family="YaleNew, 'Yale New', Georgia, serif" font-size="26" letter-spacing="7" fill="#63AAFF">YALE CULTURAL HERITAGE · AI WORKFLOWS</text>
+  </g>
+</svg>
