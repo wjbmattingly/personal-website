@@ -1,0 +1,188 @@
+---
+title: "Breaking 3,354 Loops: Strongly Connected Components in LUX's Places and Concepts"
+pubDate: 2026-11-13
+description: "Yale's LUX holds 3,004 loops among its places and 350 among its concepts, places and terms that end up inside themselves. One chai workflow finds them all and asks a small Gemini model which links to cut. The places are thousands of small knots; the concepts are mostly one knot of 2,190 terms, which only came apart once we cut it into pieces of 60."
+author: "William Mattingly"
+tags: ["lux", "graph theory", "data quality", "chai", "gemini"]
+draft: false
+---
+
+import { url as asset } from "../../lib/url";
+
+export const Anim = ({ src, alt, w = 1200, h = 760, children }) => (
+  <figure class="blog-figure">
+    <a href={asset(src)} title="Open the animation full size">
+      <img src={asset(src)} alt={alt} width={w} height={h} loading="lazy" />
+    </a>
+    <figcaption>{children}</figcaption>
+  </figure>
+);
+
+In [LUX](https://lux.collections.yale.edu/), the city of Cambridge is part of Cambridgeshire. Cambridgeshire is also part of Cambridge. Both statements are in the data, and together they make a loop: follow the county upward and you arrive back at the city you started from.
+
+Concepts do it too. In LUX, *Violinists* is a narrower term than *Fiddlers*, and *Fiddlers* is a narrower term than *Violinists*. *Handbags* sits under *Bags*, *Bags* under *Bagging*, and *Bagging* under *Handbags*.
+
+[The last post on this](/blog/dissolving-a-398-node-geographic-cycle-with-gemini-flash-lite) was about one knot of 398 places and the script that untangled it. Since then we have rebuilt the job as a single workflow, and pointed it at concepts as well as places. This post is about what that workflow does, and about the difference between the two graphs, which turned out to need different handling: the places are thousands of tiny loops, and the concepts are, mostly, one enormous one.
+
+## Some background, briefly
+
+A **graph** is a set of things and the links between them. In LUX, every place record can say which places it is `part_of`, and every concept record can say which concepts are `broader` than it. Each of those statements is a link with a direction: from the smaller place to the larger, from the narrower term to the more general one.
+
+Followed upward, those links should always end somewhere: at a continent, or at a very general term like *Philosophy*. A graph whose links never lead you back to where you started is a **directed acyclic graph**, or **DAG**. A hierarchy of places or subjects is meant to be one.
+
+A **cycle** is a path that does lead back. The useful way to find cycles at scale is to look for **strongly connected components**: groups in which every member can reach every other member by following the links. In a healthy hierarchy every component is a single record on its own. Any component of two or more records is a knot of loops, and at least one link in each loop is wrong. Finding all of them takes one pass over the graph with [Tarjan's algorithm](https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm), which runs in seconds even on hundreds of thousands of records.
+
+Why it matters: anything that walks up the hierarchy, such as breadcrumbs on a page, a search facet for "everything in England", or a pipeline computing ancestors, can walk around a loop forever unless it is written defensively. And a loop makes a statement no one meant: that a county sits inside one of its own towns.
+
+## Two graphs, two shapes
+
+We ran the cycle finder over local copies of both: places built on 28 May 2026, concepts on 8 July 2026.
+
+- **Places**: **607,122** places and **667,127** `part_of` links. **3,004** strongly connected components, covering **6,362** places.
+- **Concepts**: **505,600** concepts and **405,134** `broader` links. **350** components, covering **3,069** concepts.
+
+The counts alone hide the real difference, which is in the sizes:
+
+<Anim src="/images/blog/lux-cycles/shapes.svg" alt="Animated chart. In the local copy of LUX, 607,122 places hold 3,004 part_of loops: 2,786 of two places, 171 of three, 43 of four to nine, and 4 of ten to twenty-one. The 505,600 concepts hold 350 broader loops: 258 of two, 59 of three, 29 of four to nine, 3 of ten to eighteen, and one of 2,190 concepts. The largest place loop holds 21 of the 6,362 places caught in a loop, 0.3%; the largest concept loop holds 2,190 of the 3,069 concepts caught in a loop, 71%.">
+  Strongly connected components in both graphs, by number of members. Counted by the two scripts in dry-run mode, with no model involved.
+</Anim>
+
+Among places, **2,786** of the 3,004 loops are just two places pointing at each other, and the largest has 21. Among concepts most loops are also pairs, but one component holds **2,190** concepts joined by **5,697** links. That single component contains 71% of every concept caught in a loop.
+
+So the two jobs are different. Places need three thousand small judgements. Concepts need 349 small ones and one very large one.
+
+## What the loops look like
+
+Reading the small ones is the best way to see what goes wrong. In many of the place pairs we read, the two records look like the same place entered twice. Two records called *Barenton*, both in the arrondissement of Avranches, each say they are part of the other. *Montlieu-la-Garde* and *Montlieu-La-Garde* differ by one capital letter. In cases like these, cutting a link is only the first repair: one of the two records arguably should not exist at all.
+
+Some loops come from real geography that a strict hierarchy cannot hold. *Baarle* is a village split between Belgium and the Netherlands, and its records say it is part of both *Baarle-Hertog (Belgium)* and *Baarle-Nassau (Netherlands)*, each of which says it is part of Baarle.
+
+The concept loops are subtler. Some are pairs of near-synonyms, each declared broader than the other: *Violinists* and *Fiddlers*, *Tiger beetles* and the genus *Cicindela*, *Industrialized building* and *Buildings, Prefabricated*. Others are related terms that were never meant to nest: *Correlation (Statistics)* sits under *Least squares*, which sits under *Structural equation modeling*, which sits under *Correlation (Statistics)*. And some are a word with two meanings. The record for *Bagging* also lists *Cotton manufacture* and *Textile fabrics* among its broader terms, which suggests the cloth, not the bag. Yet it sits under *Handbags*.
+
+None of this is visible from the structure alone. To decide which link is wrong you need to know what the records mean. Here are six of these loops, and what the model made of them in the full run described below:
+
+<Anim src="/images/blog/lux-cycles/loops.svg" alt="Animated diagram of six real loops in LUX and the links Gemini 3.1 Flash-Lite cut in the full run. Places: two records called Barenton, each part of the other, both links cut; Baarle, a village in Belgium and the Netherlands, tied to Baarle-Hertog and Baarle-Nassau, three of four links cut; two Cambridgeshire and two Cambridge records, three of five links cut, leaving each Cambridge inside a Cambridgeshire. Concepts: Violinists and Fiddlers, each narrower than the other, one link cut; Handbags, Bags and Bagging, two cut, keeping Handbags under Bags; Correlation, Least squares and Structural equation modeling, two cut. Across the whole run the model cut both links in 2,003 of 2,786 place pairs (72%) and 55 of 258 concept pairs (21%).">
+  Six real loops, three among places and three among concepts, with the links the model cut and kept in the full run.
+</Anim>
+
+The model kept each Cambridge inside a Cambridgeshire and cut every link from a county down to a town. It kept *Fiddlers* under *Violinists* and *Handbags* under *Bags*, and cut *Bagging* loose from both. It did not always cut the minimum: in the statistics loop it kept *Structural equation modeling* under *Correlation (Statistics)* and cut the other two links, where one cut would have broken the loop.
+
+## One workflow for both
+
+The old places pipeline was seven steps, run one after another. The new version is one script per graph, [lux-places-scc](https://github.com/yale-ch/lux-places-scc) and [lux-concepts-scc](https://github.com/yale-ch/lux-concepts-scc-chai), each built as a single [chai-engine](https://github.com/yale-ch/chai-engine) workflow. chai is our framework for AI pipelines described as JSON: each step is a component with a role, and the LUX-specific components are defined in the script itself. The steps are the same for places and concepts:
+
+1. **Load** the LUX records and build the graph.
+2. **Find the cycles** with Tarjan's algorithm. Each component becomes one item, with its members' records attached.
+3. For each component, in parallel:
+   - **describe** it as text: every member with its name, a description from Wikidata, its authority links, and the parents its own record states, followed by every link inside the component;
+   - **propose**: [Gemini 3.1 Flash-Lite](https://ai.google.dev/gemini-api/docs/models) names the links to delete, as JSON;
+   - **validate** the reply;
+   - **store** the verdict the moment it is made.
+4. **Verify**: apply every accepted deletion to the whole graph and run Tarjan again.
+
+For the Cambridge component, the model reads this (geometries shortened):
+
+```text
+NODES (4 places)
+Each line: UUID (first 8 chars) | label  [context from the LUX record and Wikidata]
+e726502d | Cambridgeshire  [geom:POLYGON (...)  |  equiv:http://data.whosonfirst.org/1880762143  |  stated_part_of:Cambridgeshire]
+7301d574 | Cambridge  [geom:POLYGON (...)  |  equiv:http://data.whosonfirst.org/1880771375  |  stated_part_of:Cambridgeshire]
+86ccda39 | Cambridge  [wd:district in Cambridgeshire, England  |  geom:POINT ( 0.12823 52.19714 )  |  equiv:http://www.wikidata.org/entity/Q21713103,https://sws.geonames.org/7290660  |  stated_part_of:Cambridgeshire]
+3b2a133c | Cambridgeshire  [geom:POLYGON (...)  |  equiv:https://images.peabody.yale.edu/data/place/2/85/285b8121-36fd-45b2-b400-53a0e4977a76.json,http://vocab.getty.edu/tgn/7010874,http://id.loc.gov/authorities/names/n79018410  |  stated_part_of:England|East of England|Cambridge|Cambridge]
+
+EDGES (5 current part_of declarations inside this component)
+Cambridgeshire (e726502d) -[part_of]-> Cambridgeshire (3b2a133c)
+Cambridge (7301d574) -[part_of]-> Cambridgeshire (e726502d)
+Cambridge (86ccda39) -[part_of]-> Cambridgeshire (3b2a133c)
+Cambridgeshire (3b2a133c) -[part_of]-> Cambridge (86ccda39)
+Cambridgeshire (3b2a133c) -[part_of]-> Cambridge (7301d574)
+```
+
+The last line of the fourth record is the problem in plain sight: the county's own record lists Cambridge, twice, among the places it is part of.
+
+The model is asked for the *smallest* set of links to delete so that no loop remains, and is told how to handle a pair: when two records point at each other, delete only the reversed link and keep the true one; delete both only when the two are unrelated or are the same thing entered twice. Each deletion comes with a one-sentence reason.
+
+Two details carry over from the first round of this work. Models are unreliable with long opaque identifiers, so they are shown and asked to return only the first eight characters of each UUID, and the validator expands them back. And the validator rejects any deletion of a link the model was not shown. That catches invented UUIDs, and it catches **phantom** links, which are usually a real link written backwards. A deletion that names a link that does not exist would do nothing, and the loop would quietly survive.
+
+The verify step is what makes the result trustworthy. A list of deletions that looks sensible is not the same as a graph without loops. The model may leave a shorter loop behind, or break one component into several smaller ones that still loop. So every accepted deletion is applied to the whole graph and Tarjan runs again. The concepts script then goes further: whatever is still cyclic is found and judged again, for up to five passes, stopping early when nothing is left or a pass accepts no deletion.
+
+## The knot that would not come apart
+
+Small components fit in a single call with room to spare. The 2,190-concept component was another matter.
+
+The whole component fits in the model's context: about 430,000 tokens, eleven cents a call. But shown everything at once, the model accepted only about ten deletions per pass, and a knot with 5,697 links needs hundreds. Five passes later, **2,138** of the 2,190 concepts were still in a loop.
+
+The hubs give a sense of what is in it. The most connected members are *Psychology* and *philosophy* (56 links each inside the component), *economics*, *education*, *engineering*, *Epistemology*, *Fiscal policy* and *political science*. This is a large part of the subject vocabulary, and much of it is tangled together.
+
+The fix was to stop showing the model the whole thing. The concepts script now carves any component larger than 60 concepts into **fragments** the model can judge one at a time:
+
+<Anim src="/images/blog/lux-cycles/carving.svg" alt="Animated diagram. The largest loop among LUX's concepts ties 2,190 concepts together with 5,697 broader edges. Removing 620 of those edges would break every loop; their ends touch 794 concepts. The shortest loop through each of the 620 is packed into 35 fragments of at most 60 concepts, 1,106 different concepts in all. Judged a fragment at a time with Gemini 3.1 Flash-Lite, the component came apart in three passes of 35, 10 and 1 fragments: 630 deletions for $0.28, with no concept left in a loop.">
+  How the 2,190-concept component is cut into fragments. The fragment counts are from the script; the pass results are from the run recorded in the lux-concepts-scc README.
+</Anim>
+
+The carving works in three steps.
+
+First, it finds a **feedback arc set**: a set of links whose removal would leave no loop at all. Finding the smallest such set is a hard problem, but a greedy ordering of the component (the Eades–Lin–Smyth heuristic) finds a good one quickly. Put every concept in a line so that as many links as possible point forward; the links that still point backward are the feedback arc set. For this component it is **620** of the 5,697 links. Every loop in the component runs through at least one of them.
+
+Second, for each of those 620 links it finds the shortest path that closes the loop: the link itself, plus the fewest steps back to where it started. That is the smallest piece of context in which the model can see why the link is a problem.
+
+Third, it packs those loops into fragments of at most 60 concepts, keeping loops that share concepts together. The 2,190-concept component becomes **35 fragments**. They hold 1,106 different concepts, some of them in several fragments, because a busy concept like *Psychology* sits on many loops. Each fragment is shown with every `broader` link among its concepts, so the model sees each loop in its surroundings, and the model is told it is looking at a fragment.
+
+The feedback arc set is only a map. The model is not told to delete those 620 links, and often it should not: a greedy ordering knows nothing about what the terms mean, so it will happily mark a correct link as the one that points backward. The model decides which link in each loop is wrong. The algorithm decides only what the model is shown.
+
+The verification does not change. Every accepted deletion is still applied to the whole graph, and whatever is still cyclic is found and carved again for the next pass.
+
+## How big a piece?
+
+The size of the fragment mattered more than anything else we tried:
+
+<Anim src="/images/blog/lux-cycles/fragment-size.svg" alt="Animated chart. The 2,190-concept loop judged three ways with Gemini 3.1 Flash-Lite. Shown whole, five passes leave 2,138 concepts in a loop, for $0.57. Cut into fragments of 200, five passes leave 357, for $0.31. Cut into fragments of 60, three passes leave none, for $0.28. Smaller pieces did more for less.">
+  The same component judged three ways, one run each. Costs are what the Gemini API charged for all passes.
+</Anim>
+
+Shown 60 concepts at a time, the model accepted about fifteen deletions per fragment, and the component dissolved in three passes: 35 fragments, then 10, then 1. In all that was **630 deletions** for **$0.28**. Shown 200 at a time, it still accepted about fifteen deletions per fragment, but there were fewer fragments, so each pass did about a third as much for the same money. Five passes left 357 concepts in a loop for $0.31. Shown the whole component, five passes cost $0.57 and freed 52 concepts.
+
+The model seems to give about the same number of answers per call however much it is shown, so more, smaller questions get more answers. Please read that as an observation from one run of each setting, not a measurement.
+
+## The full run
+
+With the method settled, we ran both workflows over everything on 13 November 2026, with Gemini 3.1 Flash-Lite through Vertex AI and the default settings. The two runs went side by side.
+
+For **places**, one pass was enough:
+
+- all **3,004** components were judged, and all 3,004 dissolved;
+- **5,470** deletions were accepted, taking the graph from 667,127 `part_of` links to 661,657;
+- the validator rejected **1** deletion, which named a UUID the model had not been shown, and found no phantom links;
+- it took **3,004** calls, about 4.8 million tokens, 24.5 minutes and **$2.73**.
+
+For **concepts**, it took three of the five passes allowed:
+
+- pass 1 judged all **350** components, the large one in 35 fragments: 384 calls, and 346 components dissolved;
+- pass 2 found 27 components still looping. The large one was down to 643 concepts, judged in 7 fragments, and all but one component dissolved;
+- pass 3 found 7 components. The large one was down to 69 concepts, a single fragment, and all 7 dissolved;
+- **1,148** deletions were accepted, taking the graph from 405,134 `broader` links to 403,986;
+- the validator rejected **40**: 36 phantom links and 4 invented UUIDs;
+- it took **424** calls, about 1.1 million tokens, 4.6 minutes and **$0.52**.
+
+Both graphs now have no loops at all, for **$3.26** in total. No component failed.
+
+Two numbers stand out. The first is how differently the model treated pairs. It cut *both* links in **2,003** of the 2,786 place pairs (72%), but in only **55** of the 258 concept pairs (21%). The prompt allows that only when the two records are unrelated or are the same thing entered twice, so the model judged most place pairs to be duplicates. That is also why the places run deleted 5,470 of the 6,707 links inside its loops, while the concepts run deleted 1,148 of 6,687.
+
+The second is the large concept component. In this run it took 523 deletions over 35, 7 and 1 fragments, for about $0.22. In the earlier run recorded in the README, the same settings took 630 deletions over 35, 10 and 1 fragments, for $0.28. Both runs left nothing in a loop, but they did not cut the same links. One run is still not a result, and that is one more reason to check a sample of the deletions before anything is changed in LUX.
+
+## What this is good for
+
+**Loops are cheap to find and cheap to break.** Finding every strongly connected component in either graph took the scripts about fifteen seconds on a laptop. Asking a small model which link in each loop is wrong costs cents, not dollars. The expensive part is reading the records, and that is the part the model does.
+
+**The shape of the problem decides the method.** Thousands of small loops can each be shown whole. One large knot cannot. A model asked about 5,697 links at once does not give 5,697 links' worth of answers. Cutting the knot along a feedback arc set gave the model questions it could answer, without hiding any loop from it.
+
+**Verification belongs in the loop.** Every deletion is checked against the links the model was shown, then applied to the whole graph, and the graph is searched again. For concepts, whatever survives is judged again until nothing is cyclic or a pass makes no progress, and the run reports which.
+
+**Some limits remain:**
+
+- *A model's deletion is a proposal.* Breaking a loop proves that the graph is acyclic, not that the right link was cut. A sample of the deletions still needs checking by people who know the vocabularies and the places.
+- *A cut is not always the whole repair.* Many place pairs are one place entered twice. Deleting the link between them breaks the loop but leaves the duplicate, which is a merge, not a deletion.
+- *Some geography does not nest.* Baarle is in two countries. A strict hierarchy has to choose, and the model's choice is only as good as the records it is given.
+- *The data moves.* These counts come from copies of LUX built on 28 May and 8 July 2026. New records will bring new loops, so the workflow is built to be run again: it exits with an error when anything is still cyclic, so it can be gated on.
+
+The scripts are [lux-places-scc](https://github.com/yale-ch/lux-places-scc) and [lux-concepts-scc](https://github.com/yale-ch/lux-concepts-scc-chai), and both run on [chai-engine](https://github.com/yale-ch/chai-engine).
